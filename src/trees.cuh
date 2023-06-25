@@ -11,6 +11,7 @@ enum struct Version {
     v1_8_9,
     v1_12_2,
     v1_14_4,
+    v1_16_1,
     v1_16_4,
 };
 
@@ -190,7 +191,11 @@ struct BlobLeaves {
         }
     }
 
-    __device__ bool test(Random &random) const {
+    __device__ bool test(Version version, Random &random) const {
+        // Only tested on 1.16.1
+        if (version > Version::v1_14_4 && version <= Version::v1_16_1) {
+            random.skip<2>();
+        }
         if ((mask >> (16 +  0) & 1) && (mask >>  0 & 1) != Random(random).nextInt< 1>(2)) return false;
         if ((mask >> (16 +  1) & 1) && (mask >>  1 & 1) != Random(random).nextInt< 2>(2)) return false;
         if ((mask >> (16 +  2) & 1) && (mask >>  2 & 1) != Random(random).nextInt< 3>(2)) return false;
@@ -273,7 +278,7 @@ struct OakTreeData {
             if (!height.test(TrunkHeight::get(4, 2, 0, random))) return false;
         }
 
-        if (!leaves.test(random)) return false;
+        if (!leaves.test(version, random)) return false;
 
         return true;
     }
@@ -328,16 +333,25 @@ struct FancyOakTreeData {
         if (version <= Version::v1_14_4) {
             random.skip<2>();
         } else {
-            uint32_t height = TrunkHeight::get(3, 11, random);
+            uint32_t height = TrunkHeight::get(3, 11, 0, random);
             
             if (generated) {
                 // Trunk 0 - 14
                 // Beehive 1
-                uint64_t callCount = ((0xecaa86642000 >> ((height - 3) * 4)) & 0xF) + 1;
-                if (callCount & 8) random.skip<8>();
-                if (callCount & 4) random.skip<4>();
-                if (callCount & 2) random.skip<2>();
-                if (callCount & 1) random.skip<1>();
+                // uint64_t callCount = ((0xecaa86642000 >> ((height - 3) * 4)) & 0xF) + 1;
+                uint32_t branch_count = ((0x765543321000 >> ((height - 3) * 4)) & 0xF);
+                uint32_t call_count;
+                // this is wrong most of the time, so the last filter is basically always broken
+                if (version <= Version::v1_16_1) {
+                    call_count = branch_count * 2 + (branch_count + 1) * 2 + 1;
+                } else {
+                    call_count = branch_count * 2 + 1;
+                }
+                if (call_count & 16) random.skip<16>();
+                if (call_count & 8) random.skip<8>();
+                if (call_count & 4) random.skip<4>();
+                if (call_count & 2) random.skip<2>();
+                if (call_count & 1) random.skip<1>();
             }
         }
     }
@@ -367,7 +381,7 @@ struct BirchTreeData {
             if (!height.test(TrunkHeight::get(5, 2, 0, random))) return false;
         }
         
-        if (!leaves.test(random)) return false;
+        if (!leaves.test(version, random)) return false;
 
         return true;
     }
