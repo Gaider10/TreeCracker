@@ -291,9 +291,17 @@ struct OakTreeData {
             TrunkHeight::get(4, 2, 0, random);
         }
 
+        if (version > Version::v1_14_4 && version <= Version::v1_16_1) {
+            // 1st extra leaf call
+            random.skip<1>();
+        }
+
         if (generated) {
             if (version <= Version::v1_14_4) {
                 random.skip<16>();
+            } else if (version <= Version::v1_16_1) {
+                // + 2nd extra leaf call + beehive
+                random.skip<18>();
             } else {
                 // + beehive
                 random.skip<17>();
@@ -322,36 +330,72 @@ struct FancyOakTreeData {
         if (version <= Version::v1_14_4) {
             
         } else {
-            if (!height.test(TrunkHeight::get(3, 11, random))) return false;
+            if (!height.test(TrunkHeight::get(3, 11, 0, random))) return false;
         }
 
         return true;
+    }
+
+    __device__ static float treeShape(int32_t n, int32_t n2) {
+        if ((float)n2 < (float)n * 0.3f) {
+            return -1.0f;
+        }
+        float f = (float)n / 2.0f;
+        float f2 = f - (float)n2;
+        float f3 = sqrt(f * f - f2 * f2);
+        if (f2 == 0.0f) {
+            f3 = f;
+        } else if (abs(f2) >= f) {
+            return 0.0f;
+        }
+        return f3 * 0.5f;
     }
 
     __device__ static void skip(Version version, Random &random, bool generated) {
         // Maybe 1.15, idk
         if (version <= Version::v1_14_4) {
             random.skip<2>();
+        } else if (version <= Version::v1_16_1) {
+            uint32_t height = TrunkHeight::get(3, 11, 0, random);
+            
+            // extra leaf calls
+            random.skip<1>();
+
+            if (generated) {
+                uint32_t branch_count = (0x765543321000 >> ((height - 3) * 4)) & 0xF;
+                uint32_t blob_count = 1;
+                for (uint32_t i = 0; i < branch_count; i++) {
+                    int32_t n4 = height + 2;
+                    int32_t n2 = n4 - 5 - i;
+                    float f = treeShape(n4, n2);
+                    double d4 = 1.0 * (double)f * ((double)random.nextFloat() + 0.328);
+                    double d2 = (double)(random.nextFloat() * 2.0f) * 3.141592653589793;
+                    int32_t ex = floor(d4 * sin(d2) + 0.5);
+                    int32_t ez = floor(d4 * cos(d2) + 0.5);
+                    int32_t ey = n2 - 1;
+                    int32_t sy = ey - sqrt((double)(ex * ex + ez * ez)) * 0.381;
+                    if (sy >= n4 * 0.2) {
+                        blob_count++;
+                    }
+                }
+                if (blob_count & 8) random.skip<8>();
+                if (blob_count & 4) random.skip<4>();
+                if (blob_count & 2) random.skip<2>();
+                if (blob_count & 1) random.skip<1>();
+                // Beehive 1
+                random.skip<1>();
+            }
         } else {
             uint32_t height = TrunkHeight::get(3, 11, 0, random);
             
             if (generated) {
                 // Trunk 0 - 14
-                // Beehive 1
-                // uint64_t callCount = ((0xecaa86642000 >> ((height - 3) * 4)) & 0xF) + 1;
                 uint32_t branch_count = ((0x765543321000 >> ((height - 3) * 4)) & 0xF);
-                uint32_t call_count;
-                // this is wrong most of the time, so the last filter is basically always broken
-                if (version <= Version::v1_16_1) {
-                    call_count = branch_count * 2 + (branch_count + 1) * 2 + 1;
-                } else {
-                    call_count = branch_count * 2 + 1;
-                }
-                if (call_count & 16) random.skip<16>();
-                if (call_count & 8) random.skip<8>();
-                if (call_count & 4) random.skip<4>();
-                if (call_count & 2) random.skip<2>();
-                if (call_count & 1) random.skip<1>();
+                if (branch_count & 4) random.skip<8>();
+                if (branch_count & 2) random.skip<4>();
+                if (branch_count & 1) random.skip<2>();
+                // Beehive 1
+                random.skip<1>();
             }
         }
     }
@@ -394,9 +438,17 @@ struct BirchTreeData {
             TrunkHeight::get(5, 2, 0, random);
         }
 
+        if (version > Version::v1_14_4 && version <= Version::v1_16_1) {
+            // 1st extra leaf call
+            random.skip<1>();
+        }
+
         if (generated) {
             if (version <= Version::v1_14_4) {
                 random.skip<16>();
+            } else if (version <= Version::v1_16_1) {
+                // + 2nd extra leaf call + beehive
+                random.skip<18>();
             } else {
                 // + beehive
                 random.skip<17>();

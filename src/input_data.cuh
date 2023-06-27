@@ -5,55 +5,14 @@
 // Only the version/biome combinations that have an example input were tested, anything else will probably not work
 
 __device__ constexpr TreeChunk get_input_data() {
-    // return TreeChunkBuilder(Version::v1_8_9, Biome::Forest)
-    //     .tree_oak(5457, 5266, IntRange(6), "00?0""10?1""01?0")
-    //     .tree_oak(5456, 5258, IntRange(7), "?1??""?0??""01?1")
-    //     .tree_oak(5460, 5258, IntRange(7), "????""????""?1?0")
-    //     .build();
-
-    // return TreeChunkBuilder(Version::v1_8_9, Biome::Forest)
-    //     .tree_oak(5455, 5281, IntRange(7), "00??""00??""10??")
-    //     .tree_oak(5457, 5277, IntRange(5), "1???""1???""10??")
-    //     .build();
-
-    // return TreeChunkBuilder(Version::v1_8_9, Biome::Forest)
-    //     .tree_oak(5435, 5282, IntRange(5, 6), "?0?0""?1?1""?1?0")
-    //     .tree_oak(5438, 5277, IntRange(5, 6), "???0""???0""???1")
-    //     .tree_oak(5432, 5278, IntRange(5, 6), "?1??""????""????")
-    //     .build();
-
-    return TreeChunkBuilder(Version::v1_8_9, Biome::Forest)
-        .tree_oak(5434, 5292, IntRange(-1), "????""0?0?""0?0?")
-        .tree_oak(5438, 5292, IntRange(-1), "????""????""??0?")
+    return TreeChunkBuilder(Version::v1_16_1, Biome::Forest)
+        .tree_oak(-15, 93, IntRange(4), "1111""0101""1111")
+        .tree_oak(-15, 86, IntRange(4), "11?0""01?0""0101")
+        .tree_oak(-13, 83, IntRange(4), "0?1?""0?1?""00??")
+        .tree_oak(-10, 84, IntRange(5), "?010""?110""0111")
+        .tree_oak(-5, 82, IntRange(5), "1101""1100""0110")
+        .tree_fancy_oak(-10, 93, IntRange(-1))
         .build();
-
-    // 281474244703383
-
-    // return TreeChunkBuilder(Version::v1_8_9, Biome::Forest)
-    //     .tree_oak(-1433, -2346, IntRange(6), "1101""?010""1010")
-    //     .tree_oak(-1435, -2353, IntRange(6), "?0?1""??11""0?10")
-    //     .tree_birch(-1435, -2356, IntRange(5), "????""????""????")
-    //     .tree_oak(-1437, -2350, IntRange(6), "????""????""????")
-    //     .tree_oak(-1441, -2345, IntRange(6), "????""????""????")
-    //     .tree_oak(-1441, -2352, IntRange(4), "????""????""????")
-    //     .tree_oak(-1447, -2348, IntRange(4), "????""????""????")
-    //     .build();
-
-    // return TreeChunkBuilder(Version::v1_8_9, Biome::Forest)
-    //     .tree_unknown(-681, -2242)
-    //     .tree_unknown(-688, -2244)
-    //     .tree_unknown(-683, -2236)
-    //     .tree_unknown(-693, -2241)
-    //     .build();
-
-    // return TreeChunkBuilder(Version::v1_8_9, Biome::Forest)
-    //     .tree_oak(-894, -2318, IntRange(-1), "00?1""0011""1110")
-    //     .tree_oak(-893, -2325, IntRange(-1), "?1?1""?0?0""0001")
-    //     .tree_oak(-893, -2328, IntRange(-1), "0?0?""1?0?""1011")
-    //     .tree_oak(-903, -2327, IntRange(-1), "1010""1100""0000")
-    //     .tree_unknown(-900, -2325)
-    //     .tree_unknown(-900, -2319)
-    //     .build();
 }
 
 // TEST DATA
@@ -207,4 +166,16 @@ __device__ constexpr TreeChunk get_input_data() {
 //     //     .tree_oak(212, 257, IntRange(-1), "????""1???""0??0")
 //     //     .tree_oak(211, 262, IntRange(5), "?0?0""?0?1""01?0")
 //     //     .build();
+// }
+
+// 1.16.1 Forest Oak + Fancy Oak
+// __device__ constexpr TreeChunk get_input_data() {
+//     return TreeChunkBuilder(Version::v1_16_1, Biome::Forest)
+//         .tree_oak(-15, 93, IntRange(4), "1111""0101""1111")
+//         .tree_oak(-15, 86, IntRange(4), "11?0""01?0""0101")
+//         .tree_oak(-13, 83, IntRange(4), "0?1?""0?1?""00??")
+//         .tree_oak(-10, 84, IntRange(5), "?010""?110""0111")
+//         .tree_oak(-5, 82, IntRange(5), "1101""1100""0110")
+//         .tree_fancy_oak(-10, 93, IntRange(-1))
+//         .build();
 // }
