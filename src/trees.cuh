@@ -159,6 +159,12 @@ struct BlobLeaves {
     }
 
     __device__ static constexpr BlobLeaves make(Version version, const char *str) {
+        for (int32_t i = 0; i < 12; i++) {
+            cassert(str[i] != '\0'); // Leaves string too short
+            cassert(str[i] == '0' || str[i] == '1' || str[i] == '?'); // Invalid leaves string character
+        }
+        cassert(str[12] == '\0'); // Leaves string too long
+
         // Maybe 1.15, idk
         if (version <= Version::v1_14_4) {
             uint32_t mask = 0;
@@ -630,7 +636,7 @@ struct TreeChunkBuilder {
     }
 
     __device__ constexpr void new_tree(int32_t x, int32_t z, TreeType tree_type) {
-        cassert(biome_has_tree_type(version, biome, tree_type));
+        cassert(biome_has_tree_type(version, biome, tree_type)); // Invalid tree type for the given biome
 
         uint32_t tree_chunk_x = pc(version, x);
         uint32_t tree_chunk_z = pc(version, z);
@@ -638,7 +644,7 @@ struct TreeChunkBuilder {
             chunk_x = tree_chunk_x;
             chunk_z = tree_chunk_z;
         } else {
-            cassert(tree_chunk_x == chunk_x && tree_chunk_z == chunk_z);
+            cassert(tree_chunk_x == chunk_x && tree_chunk_z == chunk_z); // Duplicate tree
         }
     }
 
@@ -720,7 +726,7 @@ struct TreeChunkBuilder {
     }
 
     __device__ constexpr TreeChunk build() {
-        cassert(trees_len != 0);
+        cassert(trees_len != 0); // Can't have 0 trees
 
         TreeChunk tree_chunk;
         tree_chunk.version = version;
