@@ -21,11 +21,11 @@ void try_cuda(cudaError_t error, const char *file, uint64_t line) {
     PANIC("CUDA error at %s:%" PRIu64 ": %s\n", file, line, cudaGetErrorString(error));
 }
 
-constexpr uint64_t threads_per_run = UINT64_C(1) * 1024 * 1024 * 1024 * 4;
+constexpr uint64_t threads_per_run = UINT64_C(4) * 1024 * 1024 * 1024;
 constexpr uint64_t threads_per_block = 256;
 constexpr uint64_t blocks_per_run = threads_per_run / threads_per_block;
 
-constexpr uint64_t max_results_1_len = 1024 * 1024 * 4;
+constexpr uint64_t max_results_1_len = 8 * 1024 * 1024;
 __device__ uint64_t results_1[max_results_1_len];
 __managed__ uint64_t results_1_len;
 
@@ -50,7 +50,6 @@ constexpr bool collapse_nearby_seeds = input_data.version <= Version::v1_12_2;
 __global__ __launch_bounds__(threads_per_block) void filter_1(uint64_t start) {
     uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
     uint64_t seed = (static_cast<uint64_t>(input_data.trees[0].x) << (48 - 4)) + start + index;
-    // uint64_t seed = (UINT64_C(6) << 44) + start + index;
 
     Random tree_random = Random::withSeed(seed);
     if (!input_data.trees[0].test_full_shortcut(input_data.version, input_data.biome, tree_random)) return;
@@ -188,21 +187,27 @@ int main() {
 
     FILE *output_file = std::fopen("output.txt", "w");
     if (output_file == NULL) PANIC("Could not open output.txt\n");
+
+    uint64_t parts = 1;
+    uint64_t part = 0;
 	
     uint64_t seeds_total = UINT64_C(1) << (48 - 4);
     uint64_t seeds_per_run = threads_per_run;
 
+    uint64_t part_seed_start = part * seeds_total / parts;
+    uint64_t part_seed_end = (part + 1) * seeds_total / parts;
+
     void *results_3_mask_ptr;
     TRY_CUDA(cudaGetSymbolAddress(&results_3_mask_ptr, results_3_mask));
 
-    for (uint64_t start_seed = 0; start_seed < seeds_total; start_seed += seeds_per_run) {
+    for (uint64_t run_seed_start = part_seed_start; run_seed_start < part_seed_end; run_seed_start += seeds_per_run) {
         auto start_time = std::chrono::steady_clock::now();
 
         if (collapse_nearby_seeds) {
             cudaMemsetAsync(results_3_mask_ptr, 0, sizeof(results_3_mask));
         }
 
-        filter_1<<<blocks_per_run, threads_per_block>>>(start_seed);
+        filter_1<<<blocks_per_run, threads_per_block>>>(run_seed_start);
         TRY_CUDA(cudaGetLastError());
         TRY_CUDA(cudaDeviceSynchronize());
 
@@ -229,7 +234,7 @@ int main() {
             results_3_len = max_results_3_len;
         }
 
-        filter_4<<<results_3_len * max_calls * (1 << max_tree_count) / threads_per_block + 1, threads_per_block>>>();
+        filter_4<<<results_3_len * (max_calls + 1) * (1 << max_tree_count) / threads_per_block + 1, threads_per_block>>>();
         TRY_CUDA(cudaGetLastError());
         TRY_CUDA(cudaDeviceSynchronize());
 
@@ -238,9 +243,9 @@ int main() {
             results_4_len = max_results_4_len;
         }
 
-        // if (results_3_len != 0) {
-        //     std::printf("%" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", results_1_len, results_2_len, results_3_len, results_4_len);
-        // }
+        if (run_seed_start == part_seed_start) {
+            std::fprintf(stderr, "Counts: %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", results_1_len, results_2_len, results_3_len, results_4_len);
+        }
         // for (uint64_t i = 0; i < results_3_len; i++) {
         //     std::printf("3: %" PRIu64 "\n", results_3[i]);
         // }
@@ -254,11 +259,11 @@ int main() {
         results_3_len = 0;
         results_4_len = 0;
 
-        if (start_seed / seeds_per_run % 64 == 0) {
+        if ((run_seed_start - part_seed_start) / seeds_per_run % 256 == 0) {
             auto end_time = std::chrono::steady_clock::now();
             double time = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time).count() / 1000000000.0;
             double sps = seeds_per_run / time;
-            double eta = (seeds_total - start_seed) / sps;
+            double eta = (part_seed_end - (run_seed_start + seeds_per_run)) / sps;
 
             std::fprintf(stderr, "%.3f s, %.3f Gsps, ETA: %f s\n", time, sps / 1000000000.0, eta);
         }
