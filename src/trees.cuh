@@ -74,10 +74,16 @@ __device__ constexpr bool biome_has_tree_type(Version version, Biome biome, Tree
 
     switch (biome) {
         case Biome::Forest: {
-            return
-                tree_type == TreeType::Oak ||
-                tree_type == TreeType::FancyOak ||
-                tree_type == TreeType::Birch;
+            if (version <= Version::v1_8_9) {
+                return
+                    tree_type == TreeType::Oak ||
+                    tree_type == TreeType::Birch;
+            } else {
+                return
+                    tree_type == TreeType::Oak ||
+                    tree_type == TreeType::FancyOak ||
+                    tree_type == TreeType::Birch;
+            }
         } break;
         case Biome::Taiga: {
             return
