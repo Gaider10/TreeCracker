@@ -45,6 +45,30 @@ enum struct TreeType {
     Spruce,
 };
 
+struct TreeTypes {
+    uint32_t mask;
+
+    __device__ constexpr TreeTypes() : mask() {
+
+    }
+
+    __device__ constexpr TreeTypes(const TreeTypes &other) : mask(other.mask) {
+        
+    }
+
+    __device__ constexpr bool is_empty() const {
+        return this->mask == 0;
+    }
+
+    __device__ constexpr void add(TreeType type) {
+        this->mask |= static_cast<uint32_t>(1) << static_cast<uint32_t>(type);
+    }
+
+    __device__ constexpr bool contains(TreeType type) const {
+        return (this->mask & (static_cast<uint32_t>(1) << static_cast<uint32_t>(type))) != 0;
+    }
+};
+
 __device__ constexpr bool biome_has_tree_type(Version version, Biome biome, TreeType tree_type) {
     if (tree_type == TreeType::Unknown) return true;
 
@@ -465,21 +489,21 @@ struct BirchTreeData {
 
 // height: `total_height - 1` == `trunk_height + 1`
 // leaves_height: `leaves_height - 1` BUT if the last 2 leaf radiuses are the same the last layer has radius 0, so visually it's just `leaves_height`
-// max_leaves_radius: `max_leaves_radius`
+// leaves_radius: `leaves_radius` of the widest layer
 struct PineTreeData {
     IntRange height;
     IntRange leaves_height;
-    IntRange max_leaves_radius;
+    IntRange leaves_radius;
 
-    __device__ constexpr PineTreeData() : height(), leaves_height(), max_leaves_radius() {
+    __device__ constexpr PineTreeData() : height(), leaves_height(), leaves_radius() {
         
     }
 
-    __device__ constexpr PineTreeData(const PineTreeData &other) : height(other.height), leaves_height(other.leaves_height), max_leaves_radius(other.max_leaves_radius) {
+    __device__ constexpr PineTreeData(const PineTreeData &other) : height(other.height), leaves_height(other.leaves_height), leaves_radius(other.leaves_radius) {
 
     }
 
-    __device__ constexpr PineTreeData(IntRange height, IntRange leaves_height, IntRange max_leaves_radius) : height(height), leaves_height(leaves_height), max_leaves_radius(max_leaves_radius) {
+    __device__ constexpr PineTreeData(IntRange height, IntRange leaves_height, IntRange leaves_radius) : height(height), leaves_height(leaves_height), leaves_radius(leaves_radius) {
 
     }
 
@@ -488,7 +512,9 @@ struct PineTreeData {
         uint32_t gen_leaves_height = 3 + random.nextInt(2);
         if (!leaves_height.test(gen_leaves_height)) return false;
         uint32_t gen_max_leaves_radius = 1 + random.nextInt(gen_leaves_height + 1);
-        if (!max_leaves_radius.test(gen_max_leaves_radius)) return false;
+        uint32_t gen_leaves_radius = gen_leaves_height - 1;
+        if (gen_leaves_radius > gen_max_leaves_radius) gen_leaves_radius = gen_max_leaves_radius;
+        if (!leaves_radius.test(gen_leaves_radius)) return false;
 
         return true;
     }
@@ -502,34 +528,41 @@ struct PineTreeData {
 
 // height: `total_height - 1`
 // no_leaves_height: `no_leaves_height` number of logs without leaves starting from ground
-// max_leaves_radius: `max_leaves_radius`
+// leaves_radius: `leaves_radius` of the widest layer
 // top_leaves_radius: `top_leaves_radius`
 // trunk_reduction: `trunk_reduction`
 struct SpruceTreeData {
     IntRange height;
     IntRange no_leaves_height;
-    IntRange max_leaves_radius;
+    IntRange leaves_radius;
     IntRange top_leaves_radius;
     IntRange trunk_reduction;
 
-    __device__ constexpr SpruceTreeData() : height(), no_leaves_height(), max_leaves_radius(), top_leaves_radius(), trunk_reduction() {
+    __device__ constexpr SpruceTreeData() : height(), no_leaves_height(), leaves_radius(), top_leaves_radius(), trunk_reduction() {
         
     }
 
-    __device__ constexpr SpruceTreeData(const SpruceTreeData &other) : height(other.height), no_leaves_height(other.no_leaves_height), max_leaves_radius(other.max_leaves_radius), top_leaves_radius(other.top_leaves_radius), trunk_reduction(other.trunk_reduction) {
+    __device__ constexpr SpruceTreeData(const SpruceTreeData &other) : height(other.height), no_leaves_height(other.no_leaves_height), leaves_radius(other.leaves_radius), top_leaves_radius(other.top_leaves_radius), trunk_reduction(other.trunk_reduction) {
 
     }
 
-    __device__ constexpr SpruceTreeData(IntRange height, IntRange no_leaves_height, IntRange max_leaves_radius, IntRange top_leaves_radius, IntRange trunk_reduction) : height(height), no_leaves_height(no_leaves_height), max_leaves_radius(max_leaves_radius), top_leaves_radius(top_leaves_radius), trunk_reduction(trunk_reduction) {
+    __device__ constexpr SpruceTreeData(IntRange height, IntRange no_leaves_height, IntRange leaves_radius, IntRange top_leaves_radius, IntRange trunk_reduction) : height(height), no_leaves_height(no_leaves_height), leaves_radius(leaves_radius), top_leaves_radius(top_leaves_radius), trunk_reduction(trunk_reduction) {
 
     }
 
     __device__ bool test(Version version, Random &random) const {
-        if (!height.test(TrunkHeight::get(6, 3, random))) return false;
-        if (!no_leaves_height.test(1 + random.nextInt(2))) return false;
-        if (!max_leaves_radius.test(2 + random.nextInt(2))) return false;
-        if (!top_leaves_radius.test(random.nextInt(2))) return false;
-        if (!trunk_reduction.test(random.nextInt(3))) return false;
+        uint32_t gen_height = TrunkHeight::get(6, 3, random);
+        if (!height.test(gen_height)) return false;
+        uint32_t gen_no_leaves_height = 1 + random.nextInt(2);
+        if (!no_leaves_height.test(gen_no_leaves_height)) return false;
+        uint32_t gen_max_leaves_radius = 2 + random.nextInt(2);
+        uint32_t gen_top_leaves_radius = random.nextInt(2);
+        if (!top_leaves_radius.test(gen_top_leaves_radius)) return false;
+        uint32_t gen_leaves_radius = gen_height + 1 - gen_no_leaves_height + gen_top_leaves_radius >= 8 ? 3 : 2;
+        if (gen_leaves_radius > gen_max_leaves_radius) gen_leaves_radius = gen_max_leaves_radius;
+        if (!leaves_radius.test(gen_leaves_radius)) return false;
+        uint32_t gen_trunk_reduction = random.nextInt(3);
+        if (!trunk_reduction.test(gen_trunk_reduction)) return false;
 
         return true;
     }
@@ -547,30 +580,31 @@ struct SpruceTreeData {
 struct Tree {
     uint32_t x;
     uint32_t z;
-    TreeType type;
+    TreeTypes types;
     OakTreeData oak_tree_data;
     FancyOakTreeData fancy_oak_tree_data;
     BirchTreeData birch_tree_data;
     PineTreeData pine_tree_data;
     SpruceTreeData spruce_tree_data;
 
-    __device__ constexpr Tree() : x(), z(), type() {
+    __device__ constexpr Tree() : x(), z(), types() {
 
     }
 
-    __device__ constexpr Tree(const Tree &other) : x(other.x), z(other.z), type(other.type), oak_tree_data(other.oak_tree_data), fancy_oak_tree_data(other.fancy_oak_tree_data), birch_tree_data(other.birch_tree_data), pine_tree_data(other.pine_tree_data), spruce_tree_data(other.spruce_tree_data) {
+    __device__ constexpr Tree(const Tree &other) : x(other.x), z(other.z), types(other.types), oak_tree_data(other.oak_tree_data), fancy_oak_tree_data(other.fancy_oak_tree_data), birch_tree_data(other.birch_tree_data), pine_tree_data(other.pine_tree_data), spruce_tree_data(other.spruce_tree_data) {
         
     }
 
     __device__ bool test_pos_type(Version version, Biome biome, Random &random) const {
         if (random.nextInt(16) != x) return false;
         if (random.nextInt(16) != z) return false;
-        if (type != TreeType::Unknown && biome_get_tree_type(version, biome, random) != type) return false;
+        TreeType type = biome_get_tree_type(version, biome, random);
+        if (!types.is_empty() && !types.contains(type)) return false;
 
         return true;
     }
 
-    __device__ bool test_data(Version version, Biome biome, Random &random) const {
+    __device__ bool test_data(Version version, Biome biome, TreeType type, Random &random) const {
         if (type == TreeType::Oak && !oak_tree_data.test(version, random)) return false;
         if (type == TreeType::FancyOak && !fancy_oak_tree_data.test(version, random)) return false;
         if (type == TreeType::Birch && !birch_tree_data.test(version, random)) return false;
@@ -582,17 +616,25 @@ struct Tree {
 
     __device__ bool test_full_shortcut(Version version, Biome biome, Random &random) const {
         if (random.nextInt(16) != z) return false;
-        if (type != TreeType::Unknown && biome_get_tree_type(version, biome, random) != type) return false;
-
-        if (!test_data(version, biome, random)) return false;
+        if (!types.is_empty()) {
+            TreeType type = biome_get_tree_type(version, biome, random);
+            if (!types.contains(type)) return false;
+            
+            if (!test_data(version, biome, type, random)) return false;
+        }
 
         return true;
     }
 
     __device__ bool test_full(Version version, Biome biome, Random &random) const {
-        if (!test_pos_type(version, biome, random)) return false;
-        
-        if (!test_data(version, biome, random)) return false;
+        if (random.nextInt(16) != x) return false;
+        if (random.nextInt(16) != z) return false;
+        if (!types.is_empty()) {
+            TreeType type = biome_get_tree_type(version, biome, random);
+            if (!types.contains(type)) return false;
+            
+            if (!test_data(version, biome, type, random)) return false;
+        }
 
         return true;
     }
@@ -635,7 +677,7 @@ struct TreeChunkBuilder {
         
     }
 
-    __device__ constexpr void new_tree(int32_t x, int32_t z, TreeType tree_type) {
+    __device__ constexpr Tree &new_tree(int32_t x, int32_t z, TreeType tree_type) {
         cassert(biome_has_tree_type(version, biome, tree_type)); // Invalid tree type for the given biome
 
         uint32_t tree_chunk_x = pc(version, x);
@@ -646,81 +688,69 @@ struct TreeChunkBuilder {
         } else {
             cassert(tree_chunk_x == chunk_x && tree_chunk_z == chunk_z); // Duplicate tree
         }
+
+        uint32_t tree_offset_x = po(version, x);
+        uint32_t tree_offset_z = po(version, z);
+
+        for (uint32_t i = 0; i < trees_len; i++) {
+            Tree &tree = trees[i];
+            if (tree.x == tree_offset_x && tree.z == tree_offset_z) {
+                cassert(tree_type != TreeType::Unknown);
+                cassert(!tree.types.contains(tree_type));
+                tree.types.add(tree_type);
+                return tree;
+            }
+        }
+
+        Tree &tree = trees[trees_len++];
+        tree.x = tree_offset_x;
+        tree.z = tree_offset_z;
+        if (tree_type != TreeType::Unknown) tree.types.add(tree_type);
+        return tree;
     }
 
     __device__ constexpr TreeChunkBuilder &tree_unknown(int32_t x, int32_t z) {
-        new_tree(x, z, TreeType::Unknown);
-
-        Tree tree;
-        tree.x = po(version, x);
-        tree.z = po(version, z);
-        tree.type = TreeType::Unknown;
-        trees[trees_len++] = tree;
+        Tree &tree = new_tree(x, z, TreeType::Unknown);
 
         return *this;
     }
 
     __device__ constexpr TreeChunkBuilder &tree_oak(int32_t x, int32_t z, IntRange height, const char *leaves) {
-        new_tree(x, z, TreeType::Oak);
+        Tree &tree = new_tree(x, z, TreeType::Oak);
 
-        Tree tree;
-        tree.x = po(version, x);
-        tree.z = po(version, z);
-        tree.type = TreeType::Oak;
         tree.oak_tree_data = OakTreeData(height, BlobLeaves::make(version, leaves));
-        trees[trees_len++] = tree;
 
         return *this;
     }
 
     __device__ constexpr TreeChunkBuilder &tree_fancy_oak(int32_t x, int32_t z, IntRange height) {
-        new_tree(x, z, TreeType::Oak);
+        Tree &tree = new_tree(x, z, TreeType::FancyOak);
 
-        Tree tree;
-        tree.x = po(version, x);
-        tree.z = po(version, z);
-        tree.type = TreeType::FancyOak;
         tree.fancy_oak_tree_data = FancyOakTreeData(height);
-        trees[trees_len++] = tree;
 
         return *this;
     }
 
     __device__ constexpr TreeChunkBuilder &tree_birch(int32_t x, int32_t z, IntRange height, const char *leaves) {
-        new_tree(x, z, TreeType::Oak);
+        Tree &tree = new_tree(x, z, TreeType::Birch);
 
-        Tree tree;
-        tree.x = po(version, x);
-        tree.z = po(version, z);
-        tree.type = TreeType::Birch;
         tree.birch_tree_data = BirchTreeData(height, BlobLeaves::make(version, leaves));
-        trees[trees_len++] = tree;
 
         return *this;
     }
 
-    __device__ constexpr TreeChunkBuilder &tree_pine(int32_t x, int32_t z, IntRange height, IntRange leaves_height, IntRange max_leaves_radius) {
-        new_tree(x, z, TreeType::Pine);
+    __device__ constexpr TreeChunkBuilder &tree_pine(int32_t x, int32_t z, IntRange height, IntRange leaves_height, IntRange leaves_radius) {
+        Tree &tree = new_tree(x, z, TreeType::Pine);
 
-        Tree tree;
-        tree.x = po(version, x);
-        tree.z = po(version, z);
-        tree.type = TreeType::Pine;
-        tree.pine_tree_data = PineTreeData(height, leaves_height, max_leaves_radius);
-        trees[trees_len++] = tree;
+        tree.pine_tree_data = PineTreeData(height, leaves_height, leaves_radius);
 
         return *this;
     }
 
-    __device__ constexpr TreeChunkBuilder &tree_spruce(int32_t x, int32_t z, IntRange height, IntRange no_leaves_height, IntRange max_leaves_radius, IntRange top_leaves_radius, IntRange trunk_reduction) {
-        new_tree(x, z, TreeType::Spruce);
+    __device__ constexpr TreeChunkBuilder &tree_spruce(int32_t x, int32_t z, IntRange height, IntRange no_leaves_height, IntRange leaves_radius, IntRange top_leaves_radius, IntRange trunk_reduction) {
+        Tree &tree = new_tree(x, z, TreeType::Spruce);
 
-        Tree tree;
-        tree.x = po(version, x);
-        tree.z = po(version, z);
-        tree.type = TreeType::Spruce;
-        tree.spruce_tree_data = SpruceTreeData(height, no_leaves_height, max_leaves_radius, top_leaves_radius, trunk_reduction);
-        trees[trees_len++] = tree;
+        tree.spruce_tree_data = SpruceTreeData(height, no_leaves_height, leaves_radius, top_leaves_radius, trunk_reduction);
 
         return *this;
     }

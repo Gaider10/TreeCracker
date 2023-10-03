@@ -4,14 +4,10 @@
 
 // Only the version/biome combinations that have an example input were tested, anything else will probably not work
 
+// 
 __device__ constexpr TreeChunk get_input_data() {
-    return TreeChunkBuilder(Version::v1_16_1, Biome::Forest)
-        .tree_oak(-15, 93, IntRange(4), "1111""0101""1111")
-        .tree_oak(-15, 86, IntRange(4), "11?0""01?0""0101")
-        .tree_oak(-13, 83, IntRange(4), "0?1?""0?1?""00??")
-        .tree_oak(-10, 84, IntRange(5), "?010""?110""0111")
-        .tree_oak(-5, 82, IntRange(5), "1101""1100""0110")
-        .tree_fancy_oak(-10, 93, IntRange(-1))
+    return TreeChunkBuilder(Version::v1_8_9, Biome::Taiga)
+        .tree_unknown(0, 0)
         .build();
 }
 
@@ -168,7 +164,7 @@ __device__ constexpr TreeChunk get_input_data() {
 //     //     .build();
 // }
 
-// 1.16.1 Forest Oak + Fancy Oak
+// 1.16.1 Forest Oak + Fancy Oak - seed 123
 // __device__ constexpr TreeChunk get_input_data() {
 //     return TreeChunkBuilder(Version::v1_16_1, Biome::Forest)
 //         .tree_oak(-15, 93, IntRange(4), "1111""0101""1111")
@@ -177,5 +173,120 @@ __device__ constexpr TreeChunk get_input_data() {
 //         .tree_oak(-10, 84, IntRange(5), "?010""?110""0111")
 //         .tree_oak(-5, 82, IntRange(5), "1101""1100""0110")
 //         .tree_fancy_oak(-10, 93, IntRange(-1))
+//         .build();
+// }
+
+// 1.14.4 Forest Oak - seed  - tree seed 137138837835894 - tree decorator seeds 275040572347288 92469715419341
+// __device__ constexpr TreeChunk get_input_data() {
+//     // return TreeChunkBuilder(Version::v1_14_4, Biome::Forest)
+//     //     .tree_birch(167, -14, IntRange(-1), "00?1""1001""01?1")
+//     //     .tree_oak(166, -10, IntRange(-1), "10?1""01?1""10?0")
+//     //     .tree_oak(173, -15, IntRange(-1), "00?0""11?1""11?0")
+//     //     .tree_oak(169, -3, IntRange(6), "00??""11??""00?0")
+//     //     .tree_oak(173, -3, IntRange(-1), "???0""?1?0""00?0")
+//     //     .build();
+
+//     return TreeChunkBuilder(Version::v1_14_4, Biome::Forest)
+//         .tree_oak(143, -5, IntRange(-1), "?1?1""0010""00?0")
+//         .tree_oak(138, -8, IntRange(-1), "???0""01?0""01?0")
+//         .tree_oak(139, -11, IntRange(-1), "????""????""????")
+//         .tree_birch(140, -14, IntRange(-1), "????""????""????")
+//         .tree_fancy_oak(143, -14, IntRange(-1))
+//         .build();
+// }
+
+// 1.8.9 Taiga - some random map from minecraft story mode - seed 2234065947811606375
+// __device__ constexpr TreeChunk get_input_data() {
+//     // return TreeChunkBuilder(Version::v1_8_9, Biome::Taiga)
+//     //     .tree_unknown(11, 21)
+//     //     // .tree_pine(11, 21, IntRange(-1), IntRange(-1), IntRange(-1))
+//     //     // .tree_pine(11, 21, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(11, 18)
+//     //     // .tree_spruce(11, 18, IntRange(-1), IntRange(-1), IntRange(-1), IntRange(1), IntRange(-1))
+//     //     // .tree_spruce(11, 18, IntRange(-1), IntRange(-1), IntRange(2), IntRange(1), IntRange(-1))
+//     //     .tree_unknown(14, 15)
+//     //         .tree_spruce(14, 15, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(14, 15, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(10, 12)
+//     //         .tree_spruce(10, 12, IntRange(-1), IntRange(-1), IntRange(2), IntRange(0), IntRange(-1))
+//     //         .tree_pine(10, 12, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(12, 9)
+//     //         .tree_spruce(12, 9, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(12, 9, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(19, 15)
+//     //         .tree_spruce(19, 15, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(19, 15, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(22, 14)
+//     //         .tree_spruce(22, 14, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(22, 14, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(22, 19)
+//     //         .tree_spruce(22, 19, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(22, 19, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .build();
+
+//     // bx 360 bz 152 - cx 22 cz 9
+//     // return TreeChunkBuilder(Version::v1_8_9, Biome::Taiga)
+//     //     .tree_pine(29, 23, IntRange(-1), IntRange(-1), IntRange(1))
+//     //     .tree_spruce(36, 17, IntRange(-1), IntRange(-1), IntRange(2), IntRange(1), IntRange(-1))
+//     //     .tree_spruce(38, 12, IntRange(-1), IntRange(-1), IntRange(2), IntRange(1), IntRange(-1))
+//     //     .tree_unknown(39, 21)
+//     //         .tree_spruce(39, 21, IntRange(-1), IntRange(-1), IntRange(3), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(39, 21, IntRange(-1), IntRange(-1), IntRange(3))
+//     //     .tree_unknown(31, 19)
+//     //         .tree_spruce(31, 19, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(31, 19, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(28, 15)
+//     //         .tree_spruce(28, 15, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(28, 15, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(34, 11)
+//     //         .tree_spruce(34, 11, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(34, 11, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .build();
+
+//     // return TreeChunkBuilder(Version::v1_8_9, Biome::Taiga)
+//     //     .tree_unknown(21, 54)
+//     //         .tree_spruce(21, 54, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(21, 54, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(23, 50)
+//     //         .tree_spruce(23, 50, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(23, 50, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(23, 45)
+//     //         .tree_spruce(23, 45, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(23, 45, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(22, 40)
+//     //         .tree_spruce(22, 40, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(22, 40, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(17, 46)
+//     //         .tree_spruce(17, 46, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(17, 46, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(12, 43)
+//     //         .tree_spruce(12, 43, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(12, 43, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .tree_unknown(8, 49)
+//     //         .tree_spruce(8, 49, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//     //         .tree_pine(8, 49, IntRange(-1), IntRange(-1), IntRange(2))
+//     //     .build();
+
+//     // bx 360 bz 200 - cx 22 cz 12
+//     return TreeChunkBuilder(Version::v1_8_9, Biome::Taiga)
+//         .tree_pine(43, 48, IntRange(-1), IntRange(-1), IntRange(1))
+//         .tree_unknown(54, 41)
+//             .tree_spruce(54, 41, IntRange(-1), IntRange(-1), IntRange(3), IntRange(-1), IntRange(-1))
+//             .tree_pine(54, 41, IntRange(-1), IntRange(-1), IntRange(3))
+//         .tree_unknown(49, 42)
+//             .tree_spruce(49, 42, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//             .tree_pine(49, 42, IntRange(-1), IntRange(-1), IntRange(2))
+//         .tree_unknown(43, 43)
+//             .tree_spruce(43, 43, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//             .tree_pine(43, 43, IntRange(-1), IntRange(-1), IntRange(2))
+//         .tree_unknown(40, 45)
+//             .tree_spruce(40, 45, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//             .tree_pine(40, 45, IntRange(-1), IntRange(-1), IntRange(2))
+//         .tree_unknown(50, 49)
+//             .tree_spruce(50, 49, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//             .tree_pine(50, 49, IntRange(-1), IntRange(-1), IntRange(2))
+//         .tree_unknown(53, 55)
+//             .tree_spruce(53, 55, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
+//             .tree_pine(53, 55, IntRange(-1), IntRange(-1), IntRange(2))
 //         .build();
 // }
