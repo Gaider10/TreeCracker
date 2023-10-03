@@ -85,7 +85,7 @@ __global__ __launch_bounds__(threads_per_block) void filter_1() {
     }
 
     uint64_t result_index = atomicAdd(reinterpret_cast<unsigned long long*>(&results_1_len), 1);
-    if (result_index > max_results_1_len) return;
+    if (result_index >= max_results_1_len) return;
     results_1[result_index] = Result2 { index, random.seed };
 }
 
@@ -133,7 +133,7 @@ __global__ __launch_bounds__(threads_per_block) void filter_2() {
     if (__popc(found) != input_data.trees_len) return;
 
     uint64_t result_index = atomicAdd(reinterpret_cast<unsigned long long*>(&results_2_len), 1);
-    if (result_index > max_results_2_len) return;
+    if (result_index >= max_results_2_len) return;
     results_2[result_index] = Result2 { results_1[index].structure_seed_index, seed };
 }
 
@@ -162,7 +162,7 @@ __global__ __launch_bounds__(threads_per_block) void filter_3() {
     if (__popc(found) != input_data.trees_len) return;
 
     uint64_t result_index = atomicAdd(reinterpret_cast<unsigned long long*>(&results_3_len), 1);
-    if (result_index > max_results_3_len) return;
+    if (result_index >= max_results_3_len) return;
     results_3[result_index] = Result2 { results_2[index].structure_seed_index, seed };
 }
 
@@ -214,7 +214,7 @@ __global__ __launch_bounds__(threads_per_block) void filter_4() {
     if (atomicOr(&results_0_mask[results_0_index / 32], results_0_mask_mask) & results_0_mask_mask) return;
 
     uint64_t result_index = atomicAdd(reinterpret_cast<unsigned long long*>(&results_4_len), 1);
-    if (result_index > max_results_4_len) return;
+    if (result_index >= max_results_4_len) return;
     results_4[result_index] = results_0[results_0_index];
 }
 
