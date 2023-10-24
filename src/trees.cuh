@@ -33,6 +33,7 @@ __device__ constexpr uint32_t po(Version version, int32_t a) {
 
 enum struct Biome {
     Forest,
+    BirchForest,
     Taiga,
 };
 
@@ -85,6 +86,10 @@ __device__ constexpr bool biome_has_tree_type(Version version, Biome biome, Tree
                     tree_type == TreeType::Birch;
             }
         } break;
+        case Biome::BirchForest: {
+            return
+                tree_type == TreeType::Birch;
+        } break;
         case Biome::Taiga: {
             return
                 tree_type == TreeType::Pine ||
@@ -110,6 +115,9 @@ __device__ TreeType biome_get_tree_type(Version version, Biome biome, Random &ra
                 return TreeType::Oak;
             }
         } break;
+        case Biome::BirchForest: {
+            return TreeType::Birch;
+        } break;
         case Biome::Taiga: {
             if (random.nextInt(3) == 0) return TreeType::Pine;
             return TreeType::Spruce;
@@ -120,6 +128,9 @@ __device__ TreeType biome_get_tree_type(Version version, Biome biome, Random &ra
 __device__ constexpr int32_t biome_min_tree_count(Version version, Biome biome) {
     switch (biome) {
         case Biome::Forest: {
+            return 10;
+        };
+        case Biome::BirchForest: {
             return 10;
         };
         case Biome::Taiga: {
@@ -166,6 +177,9 @@ __device__ constexpr int32_t biome_max_calls(Version version, Biome biome) {
     switch (biome) {
         case Biome::Forest: {
             return biome_max_tree_count(version, biome) * 21;
+        } break;
+        case Biome::BirchForest: {
+            return biome_max_tree_count(version, biome) * 19;
         } break;
         case Biome::Taiga: {
             return biome_max_tree_count(version, biome) * 8;
