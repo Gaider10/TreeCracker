@@ -4,10 +4,12 @@
 
 // Only the version/biome combinations that have an example input were tested, anything else will probably not work
 
-// 
+// seed -3453423927651724977 structure seed 274036588024143
 __device__ constexpr TreeChunk get_input_data() {
-    return TreeChunkBuilder(Version::v1_8_9, Biome::Taiga)
-        .tree_unknown(0, 0)
+    return TreeChunkBuilder(Version::v1_6_4, Biome::Forest)
+        .tree_oak(1605, 381, IntRange(5), "1111""1110""0110")
+        .tree_birch(1601, 383, IntRange(7), "1111""1?11""0?11")
+        .tree_fancy_oak(1596, 387, IntRange(-1))
         .build();
 }
 
@@ -288,5 +290,14 @@ __device__ constexpr TreeChunk get_input_data() {
 //         .tree_unknown(53, 55)
 //             .tree_spruce(53, 55, IntRange(-1), IntRange(-1), IntRange(2), IntRange(-1), IntRange(-1))
 //             .tree_pine(53, 55, IntRange(-1), IntRange(-1), IntRange(2))
+//         .build();
+// }
+
+// // seed -3453423927651724977 structure seed 274036588024143
+// __device__ constexpr TreeChunk get_input_data() {
+//     return TreeChunkBuilder(Version::v1_6_4, Biome::Forest)
+//         .tree_oak(1605, 381, IntRange(5), "1111""1110""0110")
+//         .tree_birch(1601, 383, IntRange(7), "1111""1?11""0?11")
+//         .tree_fancy_oak(1596, 387, IntRange(-1))
 //         .build();
 // }

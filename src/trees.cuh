@@ -8,6 +8,7 @@
 #define cassert(expression) (void)(1 / (int)(expression))
 
 enum struct Version {
+    v1_6_4,
     v1_8_9,
     v1_12_2,
     v1_14_4,
@@ -75,7 +76,7 @@ __device__ constexpr bool biome_has_tree_type(Version version, Biome biome, Tree
 
     switch (biome) {
         case Biome::Forest: {
-            if (version <= Version::v1_8_9) {
+            if (version > Version::v1_6_4 && version <= Version::v1_8_9) {
                 return
                     tree_type == TreeType::Oak ||
                     tree_type == TreeType::Birch;
@@ -101,7 +102,11 @@ __device__ constexpr bool biome_has_tree_type(Version version, Biome biome, Tree
 __device__ TreeType biome_get_tree_type(Version version, Biome biome, Random &random) {
     switch (biome) {
         case Biome::Forest: {
-            if (version <= Version::v1_8_9) {
+            if (version <= Version::v1_6_4) {
+                if (random.nextInt(5) == 0) return TreeType::Birch;
+                if (random.nextInt(10) == 0) return TreeType::FancyOak;
+                return TreeType::Oak;
+            } else if (version <= Version::v1_8_9) {
                 // Not sure exactly in which versions this happens
                 if (random.nextInt(5) == 0) return TreeType::Birch;
                 return TreeType::Oak;
