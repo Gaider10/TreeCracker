@@ -305,6 +305,7 @@ struct TrunkHeight {
     }
 };
 
+// height == trunk_height == total_height - 1
 template<uint32_t trunk_height_a, uint32_t trunk_height_b>
 struct NormalTreeData {
     IntRange height;
@@ -378,6 +379,7 @@ struct NormalTreeData {
 using OakTreeData = NormalTreeData<4, 2>;
 using BirchTreeData = NormalTreeData<5, 2>;
 
+// height == total_height == trunk_height + 4
 struct FancyOakTreeData {
     IntRange height;
 
@@ -394,8 +396,10 @@ struct FancyOakTreeData {
     }
 
     __device__ bool test(Version version, Random &random) const {
-        if (version <= Version::v1_15_2) {
-            
+        if (version <= Version::v1_14_4) {
+            Random tree_random(random.nextLong());
+
+            if (!height.test(TrunkHeight::get(5, 11, tree_random))) return false;
         } else {
             if (!height.test(TrunkHeight::get(3, 11, 0, random))) return false;
         }

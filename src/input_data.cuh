@@ -4,15 +4,14 @@
 
 // Only the version/biome combinations that have an example input were tested, anything else will probably not work
 
-// version 1.15.2 seed 123 structure seed 123 tree seed 55895370022081
+// version 1.14.4 seed 123 structure seed 123 tree seed 273428012623057
 __device__ constexpr TreeChunk get_input_data() {
-    return TreeChunkBuilder(Version::v1_15_2, Biome::Forest)
-        .tree_birch(-190, -34, IntRange(5), "0100""?001""0001")
-        .tree_oak(-177, -44, IntRange(4), "00??""01??""11?0")
-        .tree_oak(-191, -41, IntRange(6), "1101""0001""11?1")
-        .tree_oak(-192, -46, IntRange(6), "010?""011?""1010")
-        .tree_fancy_oak(-188, -40, IntRange(-1))
-        .tree_fancy_oak(-183, -38, IntRange(-1))
+    return TreeChunkBuilder(Version::v1_14_4, Biome::Forest)
+        .tree_birch(-25, 75, IntRange(6), "01?1""01?1""1110")
+        .tree_oak(-29, 70, IntRange(5), "0001""11??""1111")
+        .tree_oak(-18, 75, IntRange(5), "????""????""????")
+        .tree_oak(-21, 79, IntRange(4), "????""????""????")
+        .tree_fancy_oak(-17, 66, IntRange(15))
         .build();
 }
 
@@ -311,5 +310,17 @@ __device__ constexpr TreeChunk get_input_data() {
 //         .tree_oak(1605, 381, IntRange(5), "1111""1110""0110")
 //         .tree_birch(1601, 383, IntRange(7), "1111""1?11""0?11")
 //         .tree_fancy_oak(1596, 387, IntRange(-1))
+//         .build();
+// }
+
+// version 1.15.2 seed 123 structure seed 123 tree seed 55895370022081
+// __device__ constexpr TreeChunk get_input_data() {
+//     return TreeChunkBuilder(Version::v1_15_2, Biome::Forest)
+//         .tree_birch(-190, -34, IntRange(5), "0100""?001""0001")
+//         .tree_oak(-177, -44, IntRange(4), "00??""01??""11?0")
+//         .tree_oak(-191, -41, IntRange(6), "1101""0001""11?1")
+//         .tree_oak(-192, -46, IntRange(6), "010?""011?""1010")
+//         .tree_fancy_oak(-188, -40, IntRange(11))
+//         .tree_fancy_oak(-183, -38, IntRange(15))
 //         .build();
 // }
