@@ -12,6 +12,7 @@ enum struct Version {
     v1_8_9,
     v1_12_2,
     v1_14_4,
+    v1_15_2,
     v1_16_1,
     v1_16_4,
 };
@@ -214,7 +215,6 @@ struct BlobLeaves {
         }
         cassert(str[12] == '\0'); // Leaves string too long
 
-        // Maybe 1.15, idk
         if (version <= Version::v1_14_4) {
             uint32_t mask = 0;
             for (int32_t y = 0; y < 3; y++) {
@@ -247,10 +247,6 @@ struct BlobLeaves {
     }
 
     __device__ bool test(Version version, Random &random) const {
-        // Only tested on 1.16.1
-        if (version > Version::v1_14_4 && version <= Version::v1_16_1) {
-            random.skip<2>();
-        }
         if ((mask >> (16 +  0) & 1) && (mask >>  0 & 1) != Random(random).nextInt< 1>(2)) return false;
         if ((mask >> (16 +  1) & 1) && (mask >>  1 & 1) != Random(random).nextInt< 2>(2)) return false;
         if ((mask >> (16 +  2) & 1) && (mask >>  2 & 1) != Random(random).nextInt< 3>(2)) return false;
@@ -309,28 +305,38 @@ struct TrunkHeight {
     }
 };
 
-struct OakTreeData {
+template<uint32_t trunk_height_a, uint32_t trunk_height_b>
+struct NormalTreeData {
     IntRange height;
     BlobLeaves leaves;
 
-    __device__ constexpr OakTreeData() : height(), leaves() {
+    __device__ constexpr NormalTreeData() : height(), leaves() {
 
     }
 
-    __device__ constexpr OakTreeData(const OakTreeData &other) : height(other.height), leaves(other.leaves) {
+    __device__ constexpr NormalTreeData(const NormalTreeData &other) : height(other.height), leaves(other.leaves) {
 
     }
 
-    __device__ constexpr OakTreeData(IntRange height, BlobLeaves leaves) : height(height), leaves(leaves) {
+    __device__ constexpr NormalTreeData(IntRange height, BlobLeaves leaves) : height(height), leaves(leaves) {
 
     }
 
     __device__ bool test(Version version, Random &random) const {
-        // Maybe 1.15, idk
         if (version <= Version::v1_14_4) {
-            if (!height.test(TrunkHeight::get(4, 2, random))) return false;
+            if (!height.test(TrunkHeight::get(trunk_height_a, trunk_height_b, random))) return false;
         } else {
-            if (!height.test(TrunkHeight::get(4, 2, 0, random))) return false;
+            if (!height.test(TrunkHeight::get(trunk_height_a, trunk_height_b, 0, random))) return false;
+        }
+
+        if (version <= Version::v1_14_4) {
+
+        } else if (version <= Version::v1_15_2) {
+            random.skip<2>(); // foliageHeight + foliageRadius
+        } else if (version <= Version::v1_16_1) {
+            random.skip<2>(); // foliageRadius + offset
+        } else {
+
         }
 
         if (!leaves.test(version, random)) return false;
@@ -339,31 +345,38 @@ struct OakTreeData {
     }
 
     __device__ static void skip(Version version, Random &random, bool generated) {
-        // Maybe 1.15, idk
         if (version <= Version::v1_14_4) {
-            TrunkHeight::get(4, 2, random);
+            TrunkHeight::get(trunk_height_a, trunk_height_b, random);
         } else {
-            TrunkHeight::get(4, 2, 0, random);
+            TrunkHeight::get(trunk_height_a, trunk_height_b, 0, random);
         }
 
-        if (version > Version::v1_14_4 && version <= Version::v1_16_1) {
-            // 1st extra leaf call
-            random.skip<1>();
+        if (version <= Version::v1_14_4) {
+
+        } else if (version <= Version::v1_15_2) {
+            random.skip<2>(); // foliageHeight + foliageRadius
+        } else if (version <= Version::v1_16_1) {
+            random.skip<1>(); // foliageRadius
+        } else {
+
         }
 
         if (generated) {
             if (version <= Version::v1_14_4) {
-                random.skip<16>();
+                random.skip<16>(); // leaves
+            } else if (version <= Version::v1_15_2) {
+                random.skip<18>(); // leaves + trunkTopOffset + beehive
             } else if (version <= Version::v1_16_1) {
-                // + 2nd extra leaf call + beehive
-                random.skip<18>();
+                random.skip<18>(); // offset + leaves + beehive
             } else {
-                // + beehive
-                random.skip<17>();
+                random.skip<17>(); // leaves + beehive
             }
         }
     }
 };
+
+using OakTreeData = NormalTreeData<4, 2>;
+using BirchTreeData = NormalTreeData<5, 2>;
 
 struct FancyOakTreeData {
     IntRange height;
@@ -381,8 +394,7 @@ struct FancyOakTreeData {
     }
 
     __device__ bool test(Version version, Random &random) const {
-        // Maybe 1.15, idk
-        if (version <= Version::v1_14_4) {
+        if (version <= Version::v1_15_2) {
             
         } else {
             if (!height.test(TrunkHeight::get(3, 11, 0, random))) return false;
@@ -407,14 +419,18 @@ struct FancyOakTreeData {
     }
 
     __device__ static void skip(Version version, Random &random, bool generated) {
-        // Maybe 1.15, idk
         if (version <= Version::v1_14_4) {
-            random.skip<2>();
+            random.skip<2>(); // tree seed nextLong
+        } else if (version <= Version::v1_15_2) {
+            random.skip<2>(); // tree seed nextLong
+
+            if (generated) {
+                random.skip<1>(); // beehive
+            }
         } else if (version <= Version::v1_16_1) {
             uint32_t height = TrunkHeight::get(3, 11, 0, random);
             
-            // extra leaf calls
-            random.skip<1>();
+            random.skip<1>(); // foliageRadius
 
             if (generated) {
                 uint32_t branch_count = (0x765543321000 >> ((height - 3) * 4)) & 0xF;
@@ -437,8 +453,8 @@ struct FancyOakTreeData {
                 if (blob_count & 4) random.skip<4>();
                 if (blob_count & 2) random.skip<2>();
                 if (blob_count & 1) random.skip<1>();
-                // Beehive 1
-                random.skip<1>();
+                
+                random.skip<1>(); // beehive
             }
         } else {
             uint32_t height = TrunkHeight::get(3, 11, 0, random);
@@ -449,64 +465,8 @@ struct FancyOakTreeData {
                 if (branch_count & 4) random.skip<8>();
                 if (branch_count & 2) random.skip<4>();
                 if (branch_count & 1) random.skip<2>();
-                // Beehive 1
-                random.skip<1>();
-            }
-        }
-    }
-};
-
-struct BirchTreeData {
-    IntRange height;
-    BlobLeaves leaves;
-
-    __device__ constexpr BirchTreeData() : height(), leaves() {
-        
-    }
-
-    __device__ constexpr BirchTreeData(const BirchTreeData &other) : height(other.height), leaves(other.leaves) {
-
-    }
-
-    __device__ constexpr BirchTreeData(IntRange height, BlobLeaves leaves) : height(height), leaves(leaves) {
-
-    }
-
-    __device__ bool test(Version version, Random &random) const {
-        // Maybe 1.15, idk
-        if (version <= Version::v1_14_4) {
-            if (!height.test(TrunkHeight::get(5, 2, random))) return false;
-        } else {
-            if (!height.test(TrunkHeight::get(5, 2, 0, random))) return false;
-        }
-        
-        if (!leaves.test(version, random)) return false;
-
-        return true;
-    }
-
-    __device__ static void skip(Version version, Random &random, bool generated) {
-        // Maybe 1.15, idk
-        if (version <= Version::v1_14_4) {
-            TrunkHeight::get(5, 2, random);
-        } else {
-            TrunkHeight::get(5, 2, 0, random);
-        }
-
-        if (version > Version::v1_14_4 && version <= Version::v1_16_1) {
-            // 1st extra leaf call
-            random.skip<1>();
-        }
-
-        if (generated) {
-            if (version <= Version::v1_14_4) {
-                random.skip<16>();
-            } else if (version <= Version::v1_16_1) {
-                // + 2nd extra leaf call + beehive
-                random.skip<18>();
-            } else {
-                // + beehive
-                random.skip<17>();
+                
+                random.skip<1>(); // beehive
             }
         }
     }

@@ -56,11 +56,14 @@ __device__ constexpr TreeChunk input_data = get_input_data();
 constexpr int32_t max_calls = biome_max_calls(input_data.version, input_data.biome);
 constexpr int32_t max_tree_count = biome_max_tree_count(input_data.version, input_data.biome);
 constexpr int32_t min_skip = 0;
-constexpr int32_t max_skip = input_data.version <= Version::v1_12_2 ? /* 10000 */10000 : max_calls;
+constexpr int32_t max_skip = input_data.version <= Version::v1_12_2 ? 10000 : max_calls;
 constexpr int32_t skip_range = max_skip - min_skip + 1;
 // 1.14.4 Forest - 60001
-// 1.16.4 Forest - 80001 ??? Not sure if that's what it was
-constexpr int32_t salt = input_data.version <= Version::v1_14_4 ? 60001 : 80001;
+// 1.15.2 Forest - 60001
+// 1.16.1 Forest - 80001
+// 1.16.4 Forest - 80001
+// 1.16.4 BirchForest - 80001
+constexpr int32_t salt = input_data.version <= Version::v1_15_2 ? 60001 : 80001;
 
 __global__ __launch_bounds__(threads_per_block) void filter_1() {
     uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
