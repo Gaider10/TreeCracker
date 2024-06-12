@@ -396,7 +396,7 @@ struct FancyOakTreeData {
     }
 
     __device__ bool test(Version version, Random &random) const {
-        if (version <= Version::v1_14_4) {
+        if (version <= Version::v1_15_2) {
             Random tree_random(random.nextLong());
 
             if (!height.test(TrunkHeight::get(5, 11, tree_random))) return false;
