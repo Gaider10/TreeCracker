@@ -379,7 +379,7 @@ struct NormalTreeData {
 using OakTreeData = NormalTreeData<4, 2>;
 using BirchTreeData = NormalTreeData<5, 2>;
 
-// height == total_height == trunk_height + 4
+// height == total_height
 struct FancyOakTreeData {
     IntRange height;
 
