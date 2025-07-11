@@ -301,7 +301,7 @@ int main() {
             std::printf("%" PRIu64 "\n", results_4[i]);
             std::fprintf(output_file, "%" PRIu64 "\n", results_4[i]);
         }
-        
+
         cudaMemsetAsync(results_0_mask_ptr, 0, (results_0_len + 31) / 32 * 4);
         cudaMemsetAsync(results_3_mask_ptr, 0, (results_3_len + 31) / 32 * 4);
 

@@ -56,7 +56,7 @@ struct TreeTypes {
     }
 
     __device__ constexpr TreeTypes(const TreeTypes &other) : mask(other.mask) {
-        
+
     }
 
     __device__ constexpr bool is_empty() const {
@@ -98,6 +98,8 @@ __device__ constexpr bool biome_has_tree_type(Version version, Biome biome, Tree
                 tree_type == TreeType::Spruce;
         } break;
     }
+
+    return false;
 }
 
 __device__ TreeType biome_get_tree_type(Version version, Biome biome, Random &random) {
@@ -129,6 +131,8 @@ __device__ TreeType biome_get_tree_type(Version version, Biome biome, Random &ra
             return TreeType::Spruce;
         } break;
     }
+
+    return TreeType::Unknown;
 }
 
 __device__ constexpr int32_t biome_min_tree_count(Version version, Biome biome) {
@@ -143,6 +147,8 @@ __device__ constexpr int32_t biome_min_tree_count(Version version, Biome biome) 
             return 10;
         };
     }
+
+    return 0;
 }
 
 __device__ constexpr float biome_extra_tree_chance(Version version, Biome biome) {
@@ -191,6 +197,8 @@ __device__ constexpr int32_t biome_max_calls(Version version, Biome biome) {
             return biome_max_tree_count(version, biome) * 8;
         } break;
     }
+
+    return 0;
 }
 
 struct BlobLeaves {
@@ -281,11 +289,11 @@ struct IntRange {
     }
 
     __device__ constexpr IntRange(int32_t val) : min(val), max(val) {
-        
+
     }
 
     __device__ constexpr IntRange(int32_t min, int32_t max) : min(min), max(max) {
-        
+
     }
 
     __device__ bool test(int32_t val) const {
@@ -384,7 +392,7 @@ struct FancyOakTreeData {
     IntRange height;
 
     __device__ constexpr FancyOakTreeData() : height() {
-        
+
     }
 
     __device__ constexpr FancyOakTreeData(const FancyOakTreeData &other) : height(other.height) {
@@ -433,7 +441,7 @@ struct FancyOakTreeData {
             }
         } else if (version <= Version::v1_16_1) {
             uint32_t height = TrunkHeight::get(3, 11, 0, random);
-            
+
             random.skip<1>(); // foliageRadius
 
             if (generated) {
@@ -457,19 +465,19 @@ struct FancyOakTreeData {
                 if (blob_count & 4) random.skip<4>();
                 if (blob_count & 2) random.skip<2>();
                 if (blob_count & 1) random.skip<1>();
-                
+
                 random.skip<1>(); // beehive
             }
         } else {
             uint32_t height = TrunkHeight::get(3, 11, 0, random);
-            
+
             if (generated) {
                 // Trunk 0 - 14
                 uint32_t branch_count = ((0x765543321000 >> ((height - 3) * 4)) & 0xF);
                 if (branch_count & 4) random.skip<8>();
                 if (branch_count & 2) random.skip<4>();
                 if (branch_count & 1) random.skip<2>();
-                
+
                 random.skip<1>(); // beehive
             }
         }
@@ -485,7 +493,7 @@ struct PineTreeData {
     IntRange leaves_radius;
 
     __device__ constexpr PineTreeData() : height(), leaves_height(), leaves_radius() {
-        
+
     }
 
     __device__ constexpr PineTreeData(const PineTreeData &other) : height(other.height), leaves_height(other.leaves_height), leaves_radius(other.leaves_radius) {
@@ -528,7 +536,7 @@ struct SpruceTreeData {
     IntRange trunk_reduction;
 
     __device__ constexpr SpruceTreeData() : height(), no_leaves_height(), leaves_radius(), top_leaves_radius(), trunk_reduction() {
-        
+
     }
 
     __device__ constexpr SpruceTreeData(const SpruceTreeData &other) : height(other.height), no_leaves_height(other.no_leaves_height), leaves_radius(other.leaves_radius), top_leaves_radius(other.top_leaves_radius), trunk_reduction(other.trunk_reduction) {
@@ -581,7 +589,7 @@ struct Tree {
     }
 
     __device__ constexpr Tree(const Tree &other) : x(other.x), z(other.z), types(other.types), oak_tree_data(other.oak_tree_data), fancy_oak_tree_data(other.fancy_oak_tree_data), birch_tree_data(other.birch_tree_data), pine_tree_data(other.pine_tree_data), spruce_tree_data(other.spruce_tree_data) {
-        
+
     }
 
     __device__ bool test_pos_type(Version version, Biome biome, Random &random) const {
@@ -603,25 +611,14 @@ struct Tree {
         return true;
     }
 
-    __device__ bool test_full_shortcut(Version version, Biome biome, Random &random) const {
-        if (random.nextInt(16) != z) return false;
-        if (!types.is_empty()) {
-            TreeType type = biome_get_tree_type(version, biome, random);
-            if (!types.contains(type)) return false;
-            
-            if (!test_data(version, biome, type, random)) return false;
-        }
-
-        return true;
-    }
-
+    template<int64_t N = 1>
     __device__ bool test_full(Version version, Biome biome, Random &random) const {
-        if (random.nextInt(16) != x) return false;
+        if (random.nextInt<N>(16) != x) return false;
         if (random.nextInt(16) != z) return false;
         if (!types.is_empty()) {
             TreeType type = biome_get_tree_type(version, biome, random);
             if (!types.contains(type)) return false;
-            
+
             if (!test_data(version, biome, type, random)) return false;
         }
 
@@ -650,7 +647,7 @@ struct TreeChunk {
     Tree trees[16];
 
     __device__ constexpr TreeChunk() : version(), biome(), chunk_x(), chunk_z(), trees_len(), trees() {
-        
+
     }
 };
 
@@ -663,7 +660,7 @@ struct TreeChunkBuilder {
     Tree trees[16];
 
     __device__ constexpr TreeChunkBuilder(Version version, Biome biome) : version(version), biome(biome), chunk_x(), chunk_z(), trees_len(0), trees() {
-        
+
     }
 
     __device__ constexpr Tree &new_tree(int32_t x, int32_t z, TreeType tree_type) {
