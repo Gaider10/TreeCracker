@@ -2,10 +2,13 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cassert>
 
 #include "Random.cuh"
 
-#define cassert(expression) (void)(1 / (int)(expression))
+__device__ void a(const char *) {}
+
+#define cassert(expr, msg) if (!(expr)) { a(msg); }
 
 enum struct Version {
     v1_6_4,
@@ -37,6 +40,7 @@ enum struct Biome {
     Forest,
     BirchForest,
     Taiga,
+    SnowyTundra,
 };
 
 enum struct TreeType {
@@ -72,6 +76,39 @@ struct TreeTypes {
     }
 };
 
+__device__ constexpr int32_t biome_salt(Version version, Biome biome) {
+    cassert(version > Version::v1_12_2, "Salts don't exist in 1.12-");
+
+    switch (biome) {
+        case Biome::Forest: {
+            // 1.14.4 - 60001
+            // 1.15.2 - 60001
+            // 1.16   - 80001
+            // 1.16.1 - 80001
+            // 1.16.4 - 80001
+            return version <= Version::v1_15_2 ? 60001 : 80001;
+        };
+        case Biome::BirchForest: {
+            // 1.15.2 - 60001
+            // 1.16   - 80001
+            return version <= Version::v1_15_2 ? 60001 : 80001;
+        };
+        case Biome::Taiga: {
+            // 1.15.2 - 60001
+            // 1.16   - 80001
+            return version <= Version::v1_15_2 ? 60001 : 80001;
+        };
+        case Biome::SnowyTundra: {
+            // 1.15.2 - 60000
+            // 1.16   - 80000
+            return version <= Version::v1_15_2 ? 60000 : 80000;
+        };
+    }
+
+    cassert(false, "Not implemented");
+    return 0;
+}
+
 __device__ constexpr bool biome_has_tree_type(Version version, Biome biome, TreeType tree_type) {
     if (tree_type == TreeType::Unknown) return true;
 
@@ -97,8 +134,12 @@ __device__ constexpr bool biome_has_tree_type(Version version, Biome biome, Tree
                 tree_type == TreeType::Pine ||
                 tree_type == TreeType::Spruce;
         } break;
+        case Biome::SnowyTundra: {
+            return tree_type == TreeType::Spruce;
+        } break;
     }
 
+    cassert(false, "Not implemented");
     return false;
 }
 
@@ -127,11 +168,20 @@ __device__ TreeType biome_get_tree_type(Version version, Biome biome, Random &ra
             return TreeType::Birch;
         } break;
         case Biome::Taiga: {
-            if (random.nextInt(3) == 0) return TreeType::Pine;
+            if (version <= Version::v1_12_2) {
+                if (random.nextInt(3) == 0) return TreeType::Pine;
+                return TreeType::Spruce;
+            } else {
+                if (random.nextFloat() < 0.33333334f) return TreeType::Pine;
+                return TreeType::Spruce;
+            }
+        } break;
+        case Biome::SnowyTundra: {
             return TreeType::Spruce;
         } break;
     }
 
+    cassert(false, "Not implemented");
     return TreeType::Unknown;
 }
 
@@ -146,8 +196,12 @@ __device__ constexpr int32_t biome_min_tree_count(Version version, Biome biome) 
         case Biome::Taiga: {
             return 10;
         };
+        case Biome::SnowyTundra: {
+            return 0;
+        };
     }
 
+    cassert(false, "Not implemented");
     return 0;
 }
 
@@ -194,10 +248,14 @@ __device__ constexpr int32_t biome_max_calls(Version version, Biome biome) {
             return biome_max_tree_count(version, biome) * 19;
         } break;
         case Biome::Taiga: {
+            return biome_max_tree_count(version, biome) * 9;
+        } break;
+        case Biome::SnowyTundra: {
             return biome_max_tree_count(version, biome) * 8;
         } break;
     }
 
+    cassert(false, "Not implemented");
     return 0;
 }
 
@@ -218,10 +276,10 @@ struct BlobLeaves {
 
     __device__ static constexpr BlobLeaves make(Version version, const char *str) {
         for (int32_t i = 0; i < 12; i++) {
-            cassert(str[i] != '\0'); // Leaves string too short
-            cassert(str[i] == '0' || str[i] == '1' || str[i] == '?'); // Invalid leaves string character
+            cassert(str[i] != '\0', "Leaves string too short");
+            cassert(str[i] == '0' || str[i] == '1' || str[i] == '?', "Invalid leaves string character");
         }
-        cassert(str[12] == '\0'); // Leaves string too long
+        cassert(str[12] == '\0', "Leaves string too long");
 
         if (version <= Version::v1_14_4) {
             uint32_t mask = 0;
@@ -309,7 +367,8 @@ struct TrunkHeight {
     }
 
     __device__ static uint32_t get(uint32_t a, uint32_t b, uint32_t c, Random &random) {
-        return a + random.nextInt(b + 1) + random.nextInt(c + 1);
+        uint32_t height = a + random.nextInt(b + 1);
+        return height + random.nextInt(c + 1);
     }
 };
 
@@ -484,9 +543,14 @@ struct FancyOakTreeData {
     }
 };
 
+// <= 1.12.2...?
 // height: `total_height - 1` == `trunk_height + 1`
 // leaves_height: `leaves_height - 1` BUT if the last 2 leaf radiuses are the same the last layer has radius 0, so visually it's just `leaves_height`
-// leaves_radius: `leaves_radius` of the widest layer
+// leaves_radius: radius of the widest layer
+// >= ?...1.16.4
+// height: `trunk_height` == `total_height - 2`
+// leaves_height: number of leaves layer
+// leaves_radius: radius of the widest layer
 struct PineTreeData {
     IntRange height;
     IntRange leaves_height;
@@ -505,29 +569,58 @@ struct PineTreeData {
     }
 
     __device__ bool test(Version version, Random &random) const {
-        if (!height.test(TrunkHeight::get(7, 4, random))) return false;
-        uint32_t gen_leaves_height = 3 + random.nextInt(2);
-        if (!leaves_height.test(gen_leaves_height)) return false;
-        uint32_t gen_max_leaves_radius = 1 + random.nextInt(gen_leaves_height + 1);
-        uint32_t gen_leaves_radius = gen_leaves_height - 1;
-        if (gen_leaves_radius > gen_max_leaves_radius) gen_leaves_radius = gen_max_leaves_radius;
-        if (!leaves_radius.test(gen_leaves_radius)) return false;
+        if (version <= Version::v1_14_4) {
+            // 1.7...1.12.2
+            if (!height.test(TrunkHeight::get(7, 4, random))) return false;
+            uint32_t gen_leaves_height = 3 + random.nextInt(2);
+            if (!leaves_height.test(gen_leaves_height)) return false;
+            uint32_t gen_max_leaves_radius = 1 + random.nextInt(gen_leaves_height + 1);
+            uint32_t gen_leaves_radius = gen_leaves_height - 1;
+            if (gen_leaves_radius > gen_max_leaves_radius) gen_leaves_radius = gen_max_leaves_radius;
+            if (!leaves_radius.test(gen_leaves_radius)) return false;
+        } else {
+            // 1.16.4
+            uint32_t trunk_height = TrunkHeight::get(6, 4, 0, random);
+            if (!height.test(trunk_height)) return false;
+
+            uint32_t foliage_height = 3 + random.nextInt(2);
+
+            uint32_t foliage_radius = 1 + random.nextInt(trunk_height - foliage_height + 1);
+
+            uint32_t actual_leaves_height = foliage_height + 1 - (foliage_radius == 1);
+            if (!leaves_height.test(actual_leaves_height)) return false;
+
+            uint32_t actual_leaves_radius = foliage_radius;
+            if (actual_leaves_radius > foliage_height - 1) actual_leaves_radius = foliage_height - 1;
+            if (!leaves_radius.test(actual_leaves_radius)) return false;
+        }
 
         return true;
     }
 
     __device__ static void skip(Version version, Random &random, bool generated) {
-        TrunkHeight::get(7, 4, random);
-        uint32_t gen_leaves_height = 3 + random.nextInt(2);
-        uint32_t gen_max_leaves_radius = 1 + random.nextInt(gen_leaves_height + 1);
+        if (version <= Version::v1_14_4) {
+            // 1.7...1.12.2
+            TrunkHeight::get(7, 4, random);
+            uint32_t gen_leaves_height = 3 + random.nextInt(2);
+            uint32_t gen_max_leaves_radius = 1 + random.nextInt(gen_leaves_height + 1);
+        } else {
+            // 1.16.4
+            uint32_t trunk_height = TrunkHeight::get(6, 4, 0, random);
+
+            uint32_t foliage_height = 3 + random.nextInt(2);
+
+            uint32_t foliage_radius = 1 + random.nextInt(trunk_height - foliage_height);
+        }
     }
 };
 
-// height: `total_height - 1`
-// no_leaves_height: `no_leaves_height` number of logs without leaves starting from ground
-// leaves_radius: `leaves_radius` of the widest layer
-// top_leaves_radius: `top_leaves_radius`
-// trunk_reduction: `trunk_reduction`
+// <= 1.12.2...? height: `total_height - 1`
+// >= ?...1.16.4 height: `trunk_height`
+// no_leaves_height: number of logs without leaves starting from the ground
+// leaves_radius: radius of the widest layer, not the actual radius but the limit, so use -1 as max unless you know the radius was limited
+// top_leaves_radius: radius of the top layer
+// trunk_reduction: number of leaves above the trunk - 1
 struct SpruceTreeData {
     IntRange height;
     IntRange no_leaves_height;
@@ -548,28 +641,66 @@ struct SpruceTreeData {
     }
 
     __device__ bool test(Version version, Random &random) const {
-        uint32_t gen_height = TrunkHeight::get(6, 3, random);
-        if (!height.test(gen_height)) return false;
-        uint32_t gen_no_leaves_height = 1 + random.nextInt(2);
-        if (!no_leaves_height.test(gen_no_leaves_height)) return false;
-        uint32_t gen_max_leaves_radius = 2 + random.nextInt(2);
-        uint32_t gen_top_leaves_radius = random.nextInt(2);
-        if (!top_leaves_radius.test(gen_top_leaves_radius)) return false;
-        uint32_t gen_leaves_radius = gen_height + 1 - gen_no_leaves_height + gen_top_leaves_radius >= 8 ? 3 : 2;
-        if (gen_leaves_radius > gen_max_leaves_radius) gen_leaves_radius = gen_max_leaves_radius;
-        if (!leaves_radius.test(gen_leaves_radius)) return false;
-        uint32_t gen_trunk_reduction = random.nextInt(3);
-        if (!trunk_reduction.test(gen_trunk_reduction)) return false;
+        if (version <= Version::v1_14_4) {
+            // 1.7...1.12.2
+            uint32_t gen_height = TrunkHeight::get(6, 3, random);
+            if (!height.test(gen_height)) return false;
+            uint32_t gen_no_leaves_height = 1 + random.nextInt(2);
+            if (!no_leaves_height.test(gen_no_leaves_height)) return false;
+            uint32_t gen_max_leaves_radius = 2 + random.nextInt(2);
+            uint32_t gen_top_leaves_radius = random.nextInt(2);
+            if (!top_leaves_radius.test(gen_top_leaves_radius)) return false;
+            uint32_t gen_leaves_radius = gen_height + 1 - gen_no_leaves_height + gen_top_leaves_radius >= 8 ? 3 : 2;
+            if (gen_leaves_radius > gen_max_leaves_radius) gen_leaves_radius = gen_max_leaves_radius;
+            if (!leaves_radius.test(gen_leaves_radius)) return false;
+            uint32_t gen_trunk_reduction = random.nextInt(3);
+            if (!trunk_reduction.test(gen_trunk_reduction)) return false;
+        } else {
+            // 1.16.4
+            uint32_t trunk_height = TrunkHeight::get(5, 2, 1, random);
+            if (!height.test(trunk_height)) return false;
+
+            uint32_t foliage_trunk_height = 1 + random.nextInt(2);
+
+            uint32_t foliage_height = trunk_height - foliage_trunk_height;
+            if (foliage_height < 4) foliage_height = 4;
+
+            uint32_t actual_no_leaves_height = trunk_height - foliage_height;
+            if (!no_leaves_height.test(actual_no_leaves_height)) return false;
+
+            uint32_t foliage_radius = 2 + random.nextInt(2);
+
+            uint32_t foliage_offset = 0 + random.nextInt(3);
+            if (!trunk_reduction.test(foliage_offset)) return false;
+
+            uint32_t gen_top_leaves_radius = random.nextInt(2);
+            if (!top_leaves_radius.test(gen_top_leaves_radius)) return false;
+
+            uint32_t full_foliage_height = foliage_height + foliage_offset + 1;
+            uint32_t actual_leaves_radius = full_foliage_height + gen_top_leaves_radius >= 8 ? foliage_radius : 2;
+            if (!leaves_radius.test(actual_leaves_radius)) return false;
+        }
 
         return true;
     }
 
     __device__ static void skip(Version version, Random &random, bool generated) {
-        if (generated) {
-            random.skip<4>();
-            random.nextInt(3);
+        if (version <= Version::v1_14_4) {
+            if (generated) {
+                random.skip<4>();
+                random.nextInt(3);
+            } else {
+                random.skip<3>();
+            }
         } else {
-            random.skip<3>();
+            if (generated) {
+                random.nextInt(3);
+                random.nextInt<4>(3);
+                random.skip();
+            } else {
+                random.nextInt(3);
+                random.skip<3>();
+            }
         }
     }
 };
@@ -664,7 +795,7 @@ struct TreeChunkBuilder {
     }
 
     __device__ constexpr Tree &new_tree(int32_t x, int32_t z, TreeType tree_type) {
-        cassert(biome_has_tree_type(version, biome, tree_type)); // Invalid tree type for the given biome
+        cassert(biome_has_tree_type(version, biome, tree_type), "Invalid tree type for the given biome");
 
         uint32_t tree_chunk_x = pc(version, x);
         uint32_t tree_chunk_z = pc(version, z);
@@ -672,7 +803,7 @@ struct TreeChunkBuilder {
             chunk_x = tree_chunk_x;
             chunk_z = tree_chunk_z;
         } else {
-            cassert(tree_chunk_x == chunk_x && tree_chunk_z == chunk_z); // Duplicate tree
+            cassert(tree_chunk_x == chunk_x && tree_chunk_z == chunk_z, "Tree outside the main chunk");
         }
 
         uint32_t tree_offset_x = po(version, x);
@@ -681,8 +812,8 @@ struct TreeChunkBuilder {
         for (uint32_t i = 0; i < trees_len; i++) {
             Tree &tree = trees[i];
             if (tree.x == tree_offset_x && tree.z == tree_offset_z) {
-                cassert(tree_type != TreeType::Unknown);
-                cassert(!tree.types.contains(tree_type));
+                cassert(tree_type != TreeType::Unknown, "Duplicate tree");
+                cassert(!tree.types.contains(tree_type), "Duplicate tree");
                 tree.types.add(tree_type);
                 return tree;
             }
@@ -742,7 +873,7 @@ struct TreeChunkBuilder {
     }
 
     __device__ constexpr TreeChunk build() {
-        cassert(trees_len != 0); // Can't have 0 trees
+        cassert(trees_len != 0, "Can't have 0 trees");
 
         TreeChunk tree_chunk;
         tree_chunk.version = version;

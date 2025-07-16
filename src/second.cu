@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cinttypes>
 #include <chrono>
+#include <vector>
 
 #include "Random.cuh"
 #include "trees.cuh"
@@ -31,26 +32,26 @@ struct Result2 {
 };
 
 constexpr uint64_t max_results_0_len = 1024;
-__managed__ uint64_t results_0[max_results_0_len];
-__managed__ uint64_t results_0_len;
+__device__ uint64_t results_0[max_results_0_len];
+__device__ uint64_t results_0_len;
 __device__ uint32_t results_0_mask[(max_results_0_len + 31) / 32];
 
 constexpr uint64_t max_results_1_len = max_results_0_len;
 __device__ Result2 results_1[max_results_1_len];
-__managed__ uint64_t results_1_len;
+__device__ uint64_t results_1_len;
 
 constexpr uint64_t max_results_2_len = 1024 * 1024;
 __device__ Result2 results_2[max_results_2_len];
-__managed__ uint64_t results_2_len;
+__device__ uint64_t results_2_len;
 
 constexpr uint64_t max_results_3_len = 1024 * 1024;
-__managed__ Result2 results_3[max_results_3_len];
-__managed__ uint64_t results_3_len;
+__device__ Result2 results_3[max_results_3_len];
+__device__ uint64_t results_3_len;
 __device__ uint32_t results_3_mask[(max_results_3_len + 31) / 32];
 
 constexpr uint64_t max_results_4_len = 1024 * 1024;
-__managed__ uint64_t results_4[max_results_4_len];
-__managed__ uint64_t results_4_len;
+__device__ uint64_t results_4[max_results_4_len];
+__device__ uint64_t results_4_len;
 
 __device__ constexpr TreeChunk input_data = get_input_data();
 constexpr int32_t max_calls = biome_max_calls(input_data.version, input_data.biome);
@@ -58,12 +59,7 @@ constexpr int32_t max_tree_count = biome_max_tree_count(input_data.version, inpu
 constexpr int32_t min_skip = 0;
 constexpr int32_t max_skip = input_data.version <= Version::v1_12_2 ? 10000 : max_calls;
 constexpr int32_t skip_range = max_skip - min_skip + 1;
-// 1.14.4 Forest - 60001
-// 1.15.2 Forest - 60001
-// 1.16.1 Forest - 80001
-// 1.16.4 Forest - 80001
-// 1.16.4 BirchForest - 80001
-constexpr int32_t salt = input_data.version <= Version::v1_15_2 ? 60001 : 80001;
+constexpr int32_t salt = biome_salt(input_data.version, input_data.biome);
 
 __global__ __launch_bounds__(threads_per_block) void filter_1() {
     uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -222,11 +218,33 @@ __global__ __launch_bounds__(threads_per_block) void filter_4() {
 }
 
 int main() {
-    results_0_len = 0;
-    results_1_len = 0;
-    results_2_len = 0;
-    results_3_len = 0;
-    results_4_len = 0;
+    uint64_t host_results_0_len = 0;
+    uint64_t host_results_1_len = 0;
+    uint64_t host_results_2_len = 0;
+    uint64_t host_results_3_len = 0;
+    uint64_t host_results_4_len = 0;
+    void *device_results_0_len;
+    void *device_results_1_len;
+    void *device_results_2_len;
+    void *device_results_3_len;
+    void *device_results_4_len;
+    void *device_results_0;
+    void *device_results_4;
+    TRY_CUDA(cudaGetSymbolAddress(&device_results_0_len, results_0_len));
+    TRY_CUDA(cudaGetSymbolAddress(&device_results_1_len, results_1_len));
+    TRY_CUDA(cudaGetSymbolAddress(&device_results_2_len, results_2_len));
+    TRY_CUDA(cudaGetSymbolAddress(&device_results_3_len, results_3_len));
+    TRY_CUDA(cudaGetSymbolAddress(&device_results_4_len, results_4_len));
+    TRY_CUDA(cudaGetSymbolAddress(&device_results_0, results_0));
+    TRY_CUDA(cudaGetSymbolAddress(&device_results_4, results_4));
+    TRY_CUDA(cudaMemsetAsync(device_results_0_len, 0, sizeof(results_0_len)));
+    TRY_CUDA(cudaMemsetAsync(device_results_1_len, 0, sizeof(results_1_len)));
+    TRY_CUDA(cudaMemsetAsync(device_results_2_len, 0, sizeof(results_2_len)));
+    TRY_CUDA(cudaMemsetAsync(device_results_3_len, 0, sizeof(results_3_len)));
+    TRY_CUDA(cudaMemsetAsync(device_results_4_len, 0, sizeof(results_4_len)));
+    std::vector<uint64_t> host_results_0;
+    host_results_0.reserve(host_results_0_len);
+    std::vector<uint64_t> host_results_4(max_results_4_len);
 
     FILE *input_file = std::fopen("input.txt", "r");
     if (input_file == NULL) PANIC("Could not open input file\n");
@@ -236,60 +254,68 @@ int main() {
 
     void *results_0_mask_ptr;
     TRY_CUDA(cudaGetSymbolAddress(&results_0_mask_ptr, results_0_mask));
-    cudaMemsetAsync(results_0_mask_ptr, 0, sizeof(results_0_mask));
+    TRY_CUDA(cudaMemsetAsync(results_0_mask_ptr, 0, sizeof(results_0_mask)));
 
     void *results_3_mask_ptr;
     TRY_CUDA(cudaGetSymbolAddress(&results_3_mask_ptr, results_3_mask));
-    cudaMemsetAsync(results_3_mask_ptr, 0, sizeof(results_3_mask));
+    TRY_CUDA(cudaMemsetAsync(results_3_mask_ptr, 0, sizeof(results_3_mask)));
 
     bool input_eof = false;
     while (!input_eof) {
-        while (results_0_len < max_results_0_len) {
+        while (host_results_0.size() < max_results_0_len) {
             uint64_t structure_seed;
             if (std::fscanf(input_file, "%" SCNu64 "\n", &structure_seed) != 1) {
+                std::fclose(input_file);
                 input_eof = true;
                 break;
             }
-            results_0[results_0_len++] = structure_seed;
+            host_results_0.push_back(structure_seed);
         }
+        host_results_0_len = host_results_0.size();
+        TRY_CUDA(cudaMemcpyAsync(device_results_0_len, &host_results_0_len, sizeof(results_0_len), cudaMemcpyHostToDevice));
+        TRY_CUDA(cudaMemcpyAsync(device_results_0, host_results_0.data(), sizeof(*results_0) * host_results_0_len, cudaMemcpyHostToDevice));
 
         filter_1<<<blocks_per_run, threads_per_block>>>();
         TRY_CUDA(cudaGetLastError());
+        TRY_CUDA(cudaMemcpyAsync(&host_results_1_len, device_results_1_len, sizeof(results_1_len), cudaMemcpyDeviceToHost));
         TRY_CUDA(cudaDeviceSynchronize());
 
-        if (results_1_len > max_results_1_len) {
-            std::fprintf(stderr, "results_1_len > max_results_1_len, ignored %" PRIu64 "\n", results_1_len - max_results_1_len);
-            results_1_len = max_results_1_len;
+        if (host_results_1_len > max_results_1_len) {
+            std::fprintf(stderr, "results_1_len > max_results_1_len, ignored %" PRIu64 "\n", host_results_1_len - max_results_1_len);
+            host_results_1_len = max_results_1_len;
         }
 
-        filter_2<<<results_1_len * skip_range / threads_per_block + 1, threads_per_block>>>();
+        filter_2<<<host_results_1_len * skip_range / threads_per_block + 1, threads_per_block>>>();
         TRY_CUDA(cudaGetLastError());
+        TRY_CUDA(cudaMemcpyAsync(&host_results_2_len, device_results_2_len, sizeof(results_2_len), cudaMemcpyDeviceToHost));
         TRY_CUDA(cudaDeviceSynchronize());
 
-        if (results_2_len > max_results_2_len) {
-            std::fprintf(stderr, "results_2_len > max_results_2_len, ignored %" PRIu64 "\n", results_2_len - max_results_2_len);
-            results_2_len = max_results_2_len;
+        if (host_results_2_len > max_results_2_len) {
+            std::fprintf(stderr, "results_2_len > max_results_2_len, ignored %" PRIu64 "\n", host_results_2_len - max_results_2_len);
+            host_results_2_len = max_results_2_len;
         }
 
-        filter_3<<<results_2_len / threads_per_block + 1, threads_per_block>>>();
+        filter_3<<<host_results_2_len / threads_per_block + 1, threads_per_block>>>();
         TRY_CUDA(cudaGetLastError());
+        TRY_CUDA(cudaMemcpyAsync(&host_results_3_len, device_results_3_len, sizeof(results_3_len), cudaMemcpyDeviceToHost));
         TRY_CUDA(cudaDeviceSynchronize());
 
-        if (results_3_len > max_results_3_len) {
-            std::fprintf(stderr, "results_3_len > max_results_3_len, ignored %" PRIu64 "\n", results_3_len - max_results_3_len);
-            results_3_len = max_results_3_len;
+        if (host_results_3_len > max_results_3_len) {
+            std::fprintf(stderr, "results_3_len > max_results_3_len, ignored %" PRIu64 "\n", host_results_3_len - max_results_3_len);
+            host_results_3_len = max_results_3_len;
         }
 
-        filter_4<<<results_3_len * (1 << max_tree_count) / threads_per_block + 1, threads_per_block>>>();
+        filter_4<<<host_results_3_len * (1 << max_tree_count) / threads_per_block + 1, threads_per_block>>>();
         TRY_CUDA(cudaGetLastError());
+        TRY_CUDA(cudaMemcpyAsync(&host_results_4_len, device_results_4_len, sizeof(results_4_len), cudaMemcpyDeviceToHost));
         TRY_CUDA(cudaDeviceSynchronize());
 
-        if (results_4_len > max_results_4_len) {
-            std::fprintf(stderr, "results_4_len > max_results_4_len, ignored %" PRIu64 "\n", results_4_len - max_results_4_len);
-            results_4_len = max_results_4_len;
+        if (host_results_4_len > max_results_4_len) {
+            std::fprintf(stderr, "results_4_len > max_results_4_len, ignored %" PRIu64 "\n", host_results_4_len - max_results_4_len);
+            host_results_4_len = max_results_4_len;
         }
 
-        std::printf("%" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", results_0_len, results_1_len, results_2_len, results_3_len, results_4_len);
+        std::printf("%" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 " %" PRIu64 "\n", host_results_0_len, host_results_1_len, host_results_2_len, host_results_3_len, host_results_4_len);
         // for (uint64_t i = 0; i < results_3_len; i++) {
         //     // std::printf("%" PRIu64 "\n", results_3[i].structure_seed);
         //     std::fprintf(output_file, "%" PRIu64 "\n", results_3[i].structure_seed);
@@ -297,19 +323,20 @@ int main() {
         // for (uint64_t i = 0; i < results_3_len; i++) {
         //     std::printf("3: %" PRIu64 "\n", results_0[results_3[i].structure_seed_index]);
         // }
-        for (uint64_t i = 0; i < results_4_len; i++) {
-            std::printf("%" PRIu64 "\n", results_4[i]);
-            std::fprintf(output_file, "%" PRIu64 "\n", results_4[i]);
+        TRY_CUDA(cudaMemcpy(host_results_4.data(), device_results_4, sizeof(*results_4) * host_results_4_len, cudaMemcpyDeviceToHost));
+        for (uint64_t i = 0; i < host_results_4_len; i++) {
+            std::printf("%" PRIu64 "\n", host_results_4[i]);
+            std::fprintf(output_file, "%" PRIu64 "\n", host_results_4[i]);
         }
 
-        cudaMemsetAsync(results_0_mask_ptr, 0, (results_0_len + 31) / 32 * 4);
-        cudaMemsetAsync(results_3_mask_ptr, 0, (results_3_len + 31) / 32 * 4);
+        TRY_CUDA(cudaMemsetAsync(results_0_mask_ptr, 0, (host_results_0_len + 31) / 32 * 4));
+        TRY_CUDA(cudaMemsetAsync(results_3_mask_ptr, 0, (host_results_3_len + 31) / 32 * 4));
 
-        results_0_len = 0;
-        results_1_len = 0;
-        results_2_len = 0;
-        results_3_len = 0;
-        results_4_len = 0;
+        host_results_0.clear();
+        TRY_CUDA(cudaMemsetAsync(device_results_1_len, 0, sizeof(results_1_len)));
+        TRY_CUDA(cudaMemsetAsync(device_results_2_len, 0, sizeof(results_2_len)));
+        TRY_CUDA(cudaMemsetAsync(device_results_3_len, 0, sizeof(results_3_len)));
+        TRY_CUDA(cudaMemsetAsync(device_results_4_len, 0, sizeof(results_4_len)));
 	}
 
     std::fclose(output_file);

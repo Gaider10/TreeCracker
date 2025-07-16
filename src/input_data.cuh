@@ -4,18 +4,58 @@
 
 // Only the version/biome combinations that have an example input were tested, anything else will probably not work
 
-// version 1.14.4 seed 123 structure seed 123 tree seed 273428012623057
 __device__ constexpr TreeChunk get_input_data() {
-    return TreeChunkBuilder(Version::v1_14_4, Biome::Forest)
-        .tree_birch(-25, 75, IntRange(6), "01?1""01?1""1110")
-        .tree_oak(-29, 70, IntRange(5), "0001""11??""1111")
-        .tree_oak(-18, 75, IntRange(5), "????""????""????")
-        .tree_oak(-21, 79, IntRange(4), "????""????""????")
-        .tree_fancy_oak(-17, 66, IntRange(15))
+    return TreeChunkBuilder(Version::v1_16_4, Biome::Taiga)
+        .tree_spruce(2075, 943, IntRange(8), IntRange(2), IntRange(2), IntRange(1), IntRange(0))
+        .tree_spruce(2075, 935, IntRange(6), IntRange(2), IntRange(2), IntRange(0), IntRange(2))
+        .tree_spruce(2078, 942, IntRange(7), IntRange(1), IntRange(2), IntRange(0), IntRange(0))
+        .tree_spruce(2074, 931, IntRange(8), IntRange(2), IntRange(3), IntRange(0), IntRange(2))
+        .tree_spruce(2069, 932, IntRange(7), IntRange(2), IntRange(3), IntRange(0), IntRange(2))
+        .tree_spruce(2065, 937, IntRange(6), IntRange(1), IntRange(2), IntRange(0), IntRange(1))
+        .tree_pine(2064, 931, IntRange(8), IntRange(4), IntRange(2))
+        .tree_pine(2066, 932, IntRange(6), IntRange(3), IntRange(1))
         .build();
 }
 
 // TEST DATA
+
+// 1.16.4 Taiga - seed 123
+// __device__ constexpr TreeChunk get_input_data() {
+//     return TreeChunkBuilder(Version::v1_16_4, Biome::Taiga)
+//         .tree_spruce(2075, 943, IntRange(8), IntRange(2), IntRange(2), IntRange(1), IntRange(0))
+//         .tree_spruce(2075, 935, IntRange(6), IntRange(2), IntRange(2), IntRange(0), IntRange(2))
+//         .tree_spruce(2078, 942, IntRange(7), IntRange(1), IntRange(2), IntRange(0), IntRange(0))
+//         .tree_spruce(2074, 931, IntRange(8), IntRange(2), IntRange(3), IntRange(0), IntRange(2))
+//         .tree_spruce(2069, 932, IntRange(7), IntRange(2), IntRange(3), IntRange(0), IntRange(2))
+//         .tree_spruce(2065, 937, IntRange(6), IntRange(1), IntRange(2), IntRange(0), IntRange(1))
+//         .tree_pine(2064, 931, IntRange(8), IntRange(4), IntRange(2))
+//         .tree_pine(2066, 932, IntRange(6), IntRange(3), IntRange(1))
+//         .build();
+
+//     // return TreeChunkBuilder(Version::v1_16_4, Biome::Taiga)
+//     //     .tree_spruce(2056, 899, IntRange(8), IntRange(1), IntRange(3), IntRange(0), IntRange(2))
+//     //     .tree_spruce(2060, 906, IntRange(5), IntRange(1), IntRange(2), IntRange(0), IntRange(1))
+//     //     .tree_spruce(2048, 903, IntRange(7), IntRange(1), IntRange(3), IntRange(0), IntRange(1))
+//     //     .tree_spruce(2057, 911, IntRange(7), IntRange(1), IntRange(2), IntRange(0), IntRange(0))
+//     //     .tree_pine(2062, 899, IntRange(10), IntRange(5), IntRange(2))
+//     //     .tree_pine(2061, 910, IntRange(10), IntRange(4), IntRange(2))
+//     //     .tree_pine(2057, 909, IntRange(8), IntRange(4), IntRange(1))
+//     //     .tree_pine(2049, 911, IntRange(10), IntRange(5), IntRange(3))
+//     //     .build();
+// }
+
+// 1.16.4 SnowyTundra - seed 123
+// __device__ constexpr TreeChunk get_input_data() {
+//     return TreeChunkBuilder(Version::v1_16_4, Biome::SnowyTundra)
+//         .tree_spruce(1897, 1018, IntRange(6), IntRange(1), IntRange(3), IntRange(1), IntRange(2))
+//         .tree_spruce(1996, 1111, IntRange(5), IntRange(1), IntRange(2), IntRange(0), IntRange(1))
+//         .tree_spruce(2017, 1129, IntRange(5), IntRange(1), IntRange(2), IntRange(1), IntRange(0))
+//         .tree_spruce(1947, 1057, IntRange(7), IntRange(1), IntRange(3), IntRange(0), IntRange(1))
+//         .tree_spruce(2072, 1184, IntRange(7), IntRange(1), IntRange(3), IntRange(1), IntRange(0))
+//         .tree_spruce(2104, 1066, IntRange(6), IntRange(1), IntRange(3), IntRange(1), IntRange(2))
+//         .tree_spruce(2150, 1081, IntRange(6), IntRange(2), IntRange(2), IntRange(0), IntRange(0))
+//         .build();
+// }
 
 // 1.16.4 Forest ???
 // chunk_trees[0] = TreeChunk(-4, -12, Biome::Forest);
@@ -85,7 +125,7 @@ __device__ constexpr TreeChunk get_input_data() {
 //         .tree_pine(-92, 328, IntRange(9, 10), IntRange(3), IntRange(2, -1))
 //         .tree_unknown(-97, 329)
 //         .build();
-    
+
 //     return TreeChunkBuilder(Version::v1_12_2, Biome::Taiga)
 //         .tree_pine(-80, 353, IntRange(7), IntRange(3), IntRange(2, -1))
 //         .tree_pine(-82, 358, IntRange(8, -1), IntRange(4), IntRange(1))
@@ -102,7 +142,7 @@ __device__ constexpr TreeChunk get_input_data() {
 //         .tree_spruce(-719, 141, IntRange(8, -1), IntRange(-1), IntRange(3, -1), IntRange(0), IntRange(1))
 //         .tree_spruce(-728, 151, IntRange(7, -1), IntRange(-1), IntRange(3, -1), IntRange(1), IntRange(1))
 //         .build();
-    
+
 //     return TreeChunkBuilder(Version::v1_12_2, Biome::Taiga)
 //         .tree_spruce(-698, 147, IntRange(6), IntRange(2), IntRange(2, -1), IntRange(0), IntRange(1))
 //         .tree_spruce(-703, 145, IntRange(9), IntRange(1), IntRange(2), IntRange(1), IntRange(1, -1))
