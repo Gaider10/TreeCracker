@@ -77,7 +77,7 @@ struct TreeTypes {
 };
 
 __device__ constexpr int32_t biome_salt(Version version, Biome biome) {
-    cassert(version > Version::v1_12_2, "Salts don't exist in 1.12-");
+    if (version <= Version::v1_12_2) return 0;
 
     switch (biome) {
         case Biome::Forest: {
