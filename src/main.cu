@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cinttypes>
 #include <chrono>
+#include <vector>
 
 #include "Random.cuh"
 #include "trees.cuh"
