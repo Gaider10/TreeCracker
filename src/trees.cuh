@@ -11,6 +11,7 @@ __device__ void a(const char *) {}
 #define cassert(expr, msg) if (!(expr)) { a(msg); }
 
 enum struct Version {
+	vB1_7_3,
     v1_6_4,
     v1_8_9,
     v1_12_2,
@@ -146,7 +147,11 @@ __device__ constexpr bool biome_has_tree_type(Version version, Biome biome, Tree
 __device__ TreeType biome_get_tree_type(Version version, Biome biome, Random &random) {
     switch (biome) {
         case Biome::Forest: {
-            if (version <= Version::v1_6_4) {
+			if (version <= Version::vB1_7_3) {
+			if (random.nextInt(5) == 0) return TreeType::Birch;
+			if (random.nextInt(3) == 0) return TreeType::FancyOak;
+			return TreeType::Oak;
+			} else if (version <= Version::v1_6_4) {
                 if (random.nextInt(5) == 0) return TreeType::Birch;
                 if (random.nextInt(10) == 0) return TreeType::FancyOak;
                 return TreeType::Oak;
@@ -188,6 +193,8 @@ __device__ TreeType biome_get_tree_type(Version version, Biome biome, Random &ra
 __device__ constexpr int32_t biome_min_tree_count(Version version, Biome biome) {
     switch (biome) {
         case Biome::Forest: {
+			if (version <= Version::vB1_7_3) return 0;
+			
             return 10;
         };
         case Biome::BirchForest: {
@@ -211,8 +218,10 @@ __device__ constexpr float biome_extra_tree_chance(Version version, Biome biome)
 
 __device__ constexpr int32_t biome_max_tree_count(Version version, Biome biome) {
     int32_t min_tree_count = biome_min_tree_count(version, biome);
-    // Probably not 1.8.9
-    if (version <= Version::v1_8_9) {
+	
+	if (version <= Version::vB1_7_3) return 15;
+	
+    else if (version <= Version::v1_8_9) {
         return min_tree_count + 1;
     } else {
         if (biome_extra_tree_chance(version, biome) != 0.0f) {
@@ -224,6 +233,10 @@ __device__ constexpr int32_t biome_max_tree_count(Version version, Biome biome) 
 }
 
 __device__ int32_t biome_tree_count(Version version, Biome biome, Random &random) {
+    if (version <= Version::vB1_7_3) {
+        return biome_max_tree_count(version, biome);
+    }
+
     int32_t tree_count = biome_min_tree_count(version, biome);
 
     if (version <= Version::v1_8_9) {
